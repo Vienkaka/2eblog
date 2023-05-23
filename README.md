@@ -19,7 +19,7 @@ Feature request? Check the past discussions to see if it has been brought up pre
 
 ## Examples
 
-- [Demo Blog](https://tailwind-nextjs-starter-blog.vercel.app/) - this repo
+- [Demo Blog](https://tailwind-css-starter-blog-vert-kappa.vercel.app//) - this repo
 - [My personal blog](https://www.timlrx.com) - modified to auto-generate blog posts with dates
 - [Aloisdg's cookbook](https://tambouille.vercel.app/) - with pictures and recipes!
 - [GautierArcin's demo with next translate](https://tailwind-nextjs-starter-blog-seven.vercel.app/) - includes translation of mdx posts, [source code](https://github.com/GautierArcin/tailwind-nextjs-starter-blog/tree/demo/next-translate)
@@ -99,12 +99,12 @@ I wanted it to be nearly as feature-rich as popular blogging templates like [bea
 
 ## Sample posts
 
-- [A markdown guide](https://tailwind-nextjs-starter-blog.vercel.app/blog/github-markdown-guide)
-- [Learn more about images in Next.js](https://tailwind-nextjs-starter-blog.vercel.app/blog/guide-to-using-images-in-nextjs)
-- [A tour of math typesetting](https://tailwind-nextjs-starter-blog.vercel.app/blog/deriving-ols-estimator)
-- [Simple MDX image grid](https://tailwind-nextjs-starter-blog.vercel.app/blog/pictures-of-canada)
-- [Example of long prose](https://tailwind-nextjs-starter-blog.vercel.app/blog/the-time-machine)
-- [Example of Nested Route Post](https://tailwind-nextjs-starter-blog.vercel.app/blog/nested-route/introducing-multi-part-posts-with-nested-routing)
+- [A markdown guide](https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/github-markdown-guide)
+- [Learn more about images in Next.js](https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/guide-to-using-images-in-nextjs)
+- [A tour of math typesetting](https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/deriving-ols-estimator)
+- [Simple MDX image grid](https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/pictures-of-canada)
+- [Example of long prose](https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/the-time-machine)
+- [Example of Nested Route Post](https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/nested-route/introducing-multi-part-posts-with-nested-routing)
 
 ## Quick Start Guide
 
@@ -226,7 +226,7 @@ summary: 'Looking for a performant, out of the box template, with all the best i
 images: ['/static/images/canada/mountains.jpg', '/static/images/canada/toronto.jpg']
 authors: ['default', 'sparrowhawk']
 layout: PostLayout
-canonicalUrl: https://tailwind-nextjs-starter-blog.vercel.app/blog/introducing-tailwind-nextjs-starter-blog
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/introducing-tailwind-nextjs-starter-blog
 ---
 ```
 
