@@ -83,7 +83,7 @@ export default function Donate() {
             </div>
           </div>
           <ul>
-            {!donate.length && 'No donate found.'}
+            {!donate.length && 'Không có dữ liệu'}
             {donate.map(({ id, title, link, image, description }) => {
               return (
                 <li key={id} className="py-4">
