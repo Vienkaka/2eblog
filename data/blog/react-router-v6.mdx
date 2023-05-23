@@ -1,0 +1,178 @@
+---
+title: 'React Router V6'
+date: 2023-05-23T22:32:14Z
+tags: ['reactjs', 'react-router']
+draft: false
+summary: 'React route là bộ định tuyến đường dẫn đến các trang, giúp đồng bộ giao diện và Url trên những trang web của các bạn'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} exclude="Overview" toHeading={2} />
+
+## 1. Overview
+
+React route là bộ định tuyến đường dẫn đến các trang, giúp đồng bộ giao diện và Url trên những trang web của các bạn. Hiện tại React route đã phát hành những bản V6 beta, với những thay đổi và cải tiến như thế nào chúng ta cùng tìm hiểu.
+
+## 2. Bundles
+
+![](https://images.viblo.asia/0b3c8ec9-e699-4c7f-9792-734a4b890a8e.png)
+![](https://images.viblo.asia/5a03bbe9-e317-43bc-95d0-68f045af2e8e.png)
+
+Với version 6 thì kích thước nhỏ hơn 62%, giúp cho tốc độ tải xuống package của bạn nhanh hơn đáng kể. Với version 6 tốc độ tải là 5ms với 4G và 80ms đối với 3G so với gói tiền nhiệm của nó v5 thì 11ms với 4G và 190ms với 3G.
+
+- Đây là giúp cho kích thước package.
+- Không hỗ trợ cho những phiên bản cũ hơn IE11
+- Không hỗ trợ cho React có version bé hơn 16.8
+- Sử dụng Google Closure Compiler
+
+Và bây giờ chúng ta cùng tìm hiểu 1 vài API được nâng cấp trong V6 này nhá.
+
+## 3. Routers
+
+Thay vì sử dụng Switch thì sử dụng Route
+Trong V5 bạn phải tạo Route cha và từ Route cha bao bọc Route con. Để Link tới Route con trong menu thì phải match Route cha và nối Route con vào.
+
+```jsx
+// React Router v5
+import { BrowserRouter, Switch, Route, Link, useRouteMatch } from 'react-router-dom'
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Switch>
+        <Route exact path="/">
+          <Home />
+        </Route>
+        <Route path="/users">
+          <Users />
+        </Route>
+      </Switch>
+    </BrowserRouter>
+  )
+}
+
+function Users() {
+  // In v5, nested routes are rendered by the child component, so
+  // you have <Switch> elements all over your app for nested UI.
+  // You build nested routes and links using match.url and match.path.
+  let match = useRouteMatch()
+
+  return (
+    <div>
+      <nav>
+        <Link to={`${match.url}/me`}>My Profile</Link>
+      </nav>
+
+      <Switch>
+        <Route path={`${match.path}/me`}>
+          <OwnUserProfile />
+        </Route>
+        <Route path={`${match.path}/:id`}>
+          <UserProfile />
+        </Route>
+      </Switch>
+    </div>
+  )
+}
+```
+
+Trong V6 Route và Link tự động kết nối tới các Route cha của nó
+
+```jsx
+import { BrowserRouter, Routes, Route, Link, Outlet } from 'react-router-dom'
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="users" element={<Users />}>
+          <Route path="/" element={<UsersIndex />} />
+          <Route path=":id" element={<UserProfile />} />
+          <Route path="me" element={<OwnUserProfile />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
+}
+
+function Users() {
+  return (
+    <div>
+      <nav>
+        <Link to="me">My Profile</Link>
+      </nav>
+
+      <Outlet />
+    </div>
+  )
+}
+```
+
+## 4. Suspense
+
+Thay vì truy cập vào history để điều hướng route thì với V6 đã cung cấp useNavigate(), điều này rất hữu ích sau khi bạn thao tác 1 hành động nào đó chẳng hạn như submit login.
+
+```jsx
+import React from 'react'
+import { useNavigate } from 'react-router-dom'
+
+function App() {
+  let navigate = useNavigate()
+  let [error, setError] = React.useState(null)
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    let result = await submitForm(event.target)
+    if (result.error) {
+      setError(result.error)
+    } else {
+      navigate('success')
+    }
+  }
+
+  return <form onSubmit={handleSubmit}>// ...</form>
+}
+```
+
+## 5. Outlet
+
+Outlet giống như props children, nó sẽ tìm những components của Route con và lắp vào vị trí của nó.
+
+```jsx
+import { BrowserRouter, Routes, Route, Link, Outlet } from 'react-router-dom'
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="profile" element={<Profile />}>
+          <Route path=":id" element={<MyProfile />} />
+          <Route path="me" element={<OthersProfile />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
+}
+
+function Profile() {
+  return (
+    <div>
+      <nav>
+        <Link to="me">My Profile</Link>
+      </nav>
+
+      <Outlet />
+    </div>
+  )
+}
+```
+
+Tùy vào url thì Outlet trong component Profile sẽ hiện component của MyProfile hoặc OthersProfile
+
+## 6. Conclude
+
+Như vậy thì mình đã tìm hiểu sơ qua về React router V6. Với những cải thiện đáng kể về size package cũng như những tính năng ưu việt thì các bạn có mong chờ phiên bản V6 này không. Cuối cùng chúc các bạn 1 ngày làm việc hiệu quả.
