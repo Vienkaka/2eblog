@@ -1,7 +1,7 @@
 const siteMetadata = {
-  title: 'BLOG của Vien',
-  author: 'Vien',
-  headerTitle: '2Eblog',
+  title: 'BLOG của 2EPlus',
+  author: '2EPlus',
+  headerTitle: '2EPlus',
   description: 'Chia sẻ là một cách để học hỏi, hy vọng sẽ nhận lại chia sẻ từ các bạn',
   language: 'vi-VN',
   theme: 'system', // system, dark or light
