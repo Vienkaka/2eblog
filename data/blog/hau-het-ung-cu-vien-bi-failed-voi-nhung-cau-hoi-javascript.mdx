@@ -19,48 +19,56 @@ hỏi javascript. ## Dẫn dắt Thình thoảng bạn tham gia các cuộc ph�
 rằng những câu hỏi trong các cuộc phỏng vấn là giống nhau chỉ có ít hay nhiều mà thôi. Và thông qua bài
 viết này thì bạn sẽ biết được độ chính xác khi trả lời các câu hỏi Javascript là khá thấp. Thông qua
 các channel thì chúng tôi đưa ra bộ câu hỏi và có những số liệu thống kê cho các câu hỏi thuộc chủ đề
-dưới đây: ## Event loop ### Độ chính xác 18% ```jsx
+dưới đây: ## Event loop
 
-setTimeout(() => console.log(1), 0);
+### Độ chính xác 18%
 
-console.log(2);
+```jsx
+setTimeout(() => console.log(1), 0)
 
-new Promise(res => {
-console.log(3)
-res();
-}).then(() => console.log(4));
+console.log(2)
 
-console.log(5);
+new Promise((res) => {
+  console.log(3)
+  res()
+}).then(() => console.log(4))
 
-````
+console.log(5)
+```
+
 ### Giải thích
+
 Trong ví dụ trên thì có 3 loại setTimeout, Promise và 1 vài dòng code đồng bộ.
 Cuộc đối thoại với các nhà tuyển dụng, và hy vọng câu trả lời của bạn sẽ như thế này:
-* NTD: setTimeout có delay = 0 thì sẽ là bất đồng bộ hay là đồng bộ
-* BAN: mặc dù setTimeout có delay = 0 nhưng callback function vẫn được xem như là bất đồng bộ. khi đó callback function sẽ được đưa vào callback queu để đợi và sẽ được đưa vào stack khi stack rỗng. Nên console.log(2); sẽ được đưa lên đầu
-* NTD: vậy hàm trong Promise thì là đồng bộ hay bất đồng bộ?
-* BAN: hàm trong Promise sẽ được gọi là đồng bộ và số tiếp theo xuất hiện sẽ là 3
-* NTD: vậy thì callback trong function then() với deplay = 0 vì console.log(3) được thực hiện ngay tức khắc thì được gọi là đồng bộ hay bất đồng bộ?
-* BAN: mặc dù với delay = 0 nhưng mà cơ chế gọi hàm then() trong promise là bất đồng bộ và số tiếp theo xuất hiện sẽ là 5
-* NTD: với delay = 0 cho cả setTimeout và function then() trong promise thì hàm nào sẽ được ưu tiên hơn?
-* BAN: giữa setTimeout và promise thì promise có độ ưu tiên hơn nên số xuất hiện sẽ là 4 và cuối cùng là 1
+
+- NTD: setTimeout có delay = 0 thì sẽ là bất đồng bộ hay là đồng bộ
+- BAN: mặc dù setTimeout có delay = 0 nhưng callback function vẫn được xem như là bất đồng bộ. khi đó callback function sẽ được đưa vào callback queu để đợi và sẽ được đưa vào stack khi stack rỗng. Nên console.log(2); sẽ được đưa lên đầu
+- NTD: vậy hàm trong Promise thì là đồng bộ hay bất đồng bộ?
+- BAN: hàm trong Promise sẽ được gọi là đồng bộ và số tiếp theo xuất hiện sẽ là 3
+- NTD: vậy thì callback trong function then() với deplay = 0 vì console.log(3) được thực hiện ngay tức khắc thì được gọi là đồng bộ hay bất đồng bộ?
+- BAN: mặc dù với delay = 0 nhưng mà cơ chế gọi hàm then() trong promise là bất đồng bộ và số tiếp theo xuất hiện sẽ là 5
+- NTD: với delay = 0 cho cả setTimeout và function then() trong promise thì hàm nào sẽ được ưu tiên hơn?
+- BAN: giữa setTimeout và promise thì promise có độ ưu tiên hơn nên số xuất hiện sẽ là 4 và cuối cùng là 1
+
 ## Context
+
 ### Độ chính xác 29%
+
 ```jsx
-'use strict';
+'use strict'
 
 function foo() {
-  console.log(this);
+  console.log(this)
 }
 
 function callFoo(fn) {
-  fn();
+  fn()
 }
 
-let obj = { foo };
+let obj = { foo }
 
-callFoo(obj.foo);
-````
+callFoo(obj.foo)
+```
 
 ### Giải thích
 
