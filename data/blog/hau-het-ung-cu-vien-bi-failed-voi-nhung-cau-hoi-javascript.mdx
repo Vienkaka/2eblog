@@ -1,0 +1,151 @@
+---
+title: 'Hầu hết ứng cử viên bị failed với những câu hỏi Javascript'
+date: 2023-05-26T22:32:14Z
+tags: ['Javascript', 'interview']
+draft: false
+summary: 'Hôm nay mình xin chia sẻ nội dung về các cuộc phỏng vấn, lý do là do kinh tết suy thoái, thị trường tuyển dụng ảm đạm, sa thải hoàng loạt nhân viên với số lượng lớn ở các ngành công nghiệp và trong ngành công nghệ thông tin các lập trình viên cũng chịu ảnh hưởng đôi phần. Thông qua 1 số trang thống kê về độ chính xác trong các câu hỏi về ngôn ngữ lập trình thì mình muốn chia sẻ 1 vài thông tin về javascript cho các bạn đang trong thời gian tìm việc với nội dung được thống kê là hầu hết các bạn đều sai với những câu hỏi javascript.'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={2} />
+Hôm nay mình xin chia sẻ nội dung về các cuộc phỏng vấn, lý do là do kinh tết suy thoái, thị trường tuyển
+dụng ảm đạm, sa thải hoàng loạt nhân viên với số lượng lớn ở các ngành công nghiệp và trong ngành công
+nghệ thông tin các lập trình viên cũng chịu ảnh hưởng đôi phần. Thông qua 1 số trang thống kê về độ chính
+xác trong các câu hỏi về ngôn ngữ lập trình thì mình muốn chia sẻ 1 vài thông tin về javascript cho các
+bạn đang trong thời gian tìm việc với nội dung được thống kê là hầu hết các bạn đều sai với những câu
+hỏi javascript. ## Dẫn dắt Thình thoảng bạn tham gia các cuộc phỏng vấn Javascript thì bạn sẽ thấy được
+rằng những câu hỏi trong các cuộc phỏng vấn là giống nhau chỉ có ít hay nhiều mà thôi. Và thông qua bài
+viết này thì bạn sẽ biết được độ chính xác khi trả lời các câu hỏi Javascript là khá thấp. Thông qua
+các channel thì chúng tôi đưa ra bộ câu hỏi và có những số liệu thống kê cho các câu hỏi thuộc chủ đề
+dưới đây: ## Event loop ### Độ chính xác 18% ```jsx setTimeout(() => console.log(1), 0);
+
+console.log(2);
+
+new Promise(res => {
+console.log(3)
+res();
+}).then(() => console.log(4));
+
+console.log(5);
+
+````
+### Giải thích
+Trong ví dụ trên thì có 3 loại setTimeout, Promise và 1 vài dòng code đồng bộ.
+Cuộc đối thoại với các nhà tuyển dụng, và hy vọng câu trả lời của bạn sẽ như thế này:
+* NTD: setTimeout có delay = 0 thì sẽ là bất đồng bộ hay là đồng bộ
+* BAN: mặc dù setTimeout có delay = 0 nhưng callback function vẫn được xem như là bất đồng bộ. khi đó callback function sẽ được đưa vào callback queu để đợi và sẽ được đưa vào stack khi stack rỗng. Nên console.log(2); sẽ được đưa lên đầu
+* NTD: vậy hàm trong Promise thì là đồng bộ hay bất đồng bộ?
+* BAN: hàm trong Promise sẽ được gọi là đồng bộ và số tiếp theo xuất hiện sẽ là 3
+* NTD: vậy thì callback trong function then() với deplay = 0 vì console.log(3) được thực hiện ngay tức khắc thì được gọi là đồng bộ hay bất đồng bộ?
+* BAN: mặc dù với delay = 0 nhưng mà cơ chế gọi hàm then() trong promise là bất đồng bộ và số tiếp theo xuất hiện sẽ là 5
+* NTD: với delay = 0 cho cả setTimeout và function then() trong promise thì hàm nào sẽ được ưu tiên hơn?
+* BAN: giữa setTimeout và promise thì promise có độ ưu tiên hơn nên số xuất hiện sẽ là 4 và cuối cùng là 1
+## Context
+### Độ chính xác 29%
+```jsx
+'use strict';
+
+function foo() {
+  console.log(this);
+}
+
+function callFoo(fn) {
+  fn();
+}
+
+let obj = { foo };
+
+callFoo(obj.foo);
+````
+
+### Giải thích
+
+Giá trị của **this** được đặt tại thời điểm hàm được gọi. Trong ví dụ trên thì object.foo được truyền vào callFoo như 1 đối số.
+
+- Trong chế độ chạy trong trình duyệt thì this này sẽ là window
+- Trong chế độ nghiêm ngặt thì kết quả là undefined
+  **Kết quả đúng là undefined**
+
+## ES6 modules
+
+### Độ chính xác 41%
+
+**File nào sẽ chạy trước**
+**index.js**
+
+```jsx
+console.log('index.js')
+
+import { sum } from './helper.js'
+
+console.log(sum(1, 2))
+```
+
+**helper.js**
+
+```jsx
+console.log('helper.js')
+export const sum = (x, y) => x + y
+```
+
+### Giải thích
+
+- Những dòng import sẽ được được lên trên cùng ( cơ chế hoisted )
+  **Kết quả là: helper.js => index.js**
+
+## Hoisting
+
+### Độ chính xác 40%
+
+Mặc dù những câu hỏi dạng này không thực tế vì các IDE đã hỗ trợ nhưng việc hiểu được mã chạy như thế nào giúp bạn kiểm soát được hoàn toàn những gì mình đã viết ra
+
+```jsx
+'use strict'
+
+var num = 8
+
+function num() {
+  return 10
+}
+
+console.log(num)
+```
+
+### Giải thích
+
+- Khi hàm và biến cùng định nghĩa 1 tên có nghĩa là sẽ cùng chỉ dẫn tới cùng 1 địa chỉ
+- Khi khởi tạo biến: trong bất kỳ hoàn cảnh nào thì function cũng được khởi tạo sau
+- Khi gán biến: biến nào được gán sau thì chính là giá trị của biến đó
+  **Ví dụ 1**
+
+```jsx
+function num() {}
+var num
+console.log(typeof num) // function
+```
+
+**Ví dụ 2**
+
+```jsx
+var num
+function num() {}
+console.log(typeof num) // function
+```
+
+**Ví dụ 3**
+
+```jsx
+var num = 8
+function num() {}
+
+//sẽ chuyển đổi thành
+var num
+function num() {}
+num = 8
+
+// Giá trị num = 8.
+```
+
+Như vậy là mình đã đi qua 1 vài câu hỏi phổ biến khi tham gia phỏng vấn Javascript, mình sẽ còn có phần sau với nhiều câu hỏi hơn nữa giúp các bạn vững vàng Javascript
