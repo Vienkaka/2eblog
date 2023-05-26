@@ -54,10 +54,8 @@ const securityHeaders = [
 
 module.exports = withBundleAnalyzer({
   reactStrictMode: true,
-  env: {
-    NEXT_PUBLIC_SUPABASE_URL: 'https://xlafgkujgoaelkhxzzpo.supabase.co',
-    NEXT_PUBLIC_SUPABASE_ANON_KEY:
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhsYWZna3VqZ29hZWxraHh6enBvIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODQ3Mzc2NzAsImV4cCI6MjAwMDMxMzY3MH0.TDJjcR6Hi6a38uZ8EBBGtEja8mJ6_Yh0Q2u3OvXku-I',
+  images: {
+    domains: ['fastly.picsum.photos'],
   },
   pageExtensions: ['js', 'jsx', 'md', 'mdx'],
   eslint: {
