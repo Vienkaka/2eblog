@@ -2,6 +2,8 @@ import { useRef, useState } from 'react'
 
 import siteMetadata from '@/data/siteMetadata'
 
+const API_URL = process.env.BUTTONDOWN_API_URL
+
 const NewsletterForm = ({ title = 'Đăng ký để nhận bài viết mới nhất' }) => {
   const inputEl = useRef(null)
   const [error, setError] = useState(false)
@@ -11,7 +13,7 @@ const NewsletterForm = ({ title = 'Đăng ký để nhận bài viết mới nh�
   const subscribe = async (e) => {
     e.preventDefault()
 
-    const res = await fetch(`/api/${siteMetadata.newsletter.provider}`, {
+    const res = await fetch(`${API_URL}/api/${siteMetadata.newsletter.provider}`, {
       body: JSON.stringify({
         email: inputEl.current.value,
       }),
