@@ -1,5 +1,4 @@
 import Document, { Html, Head, Main, NextScript } from 'next/document'
-import Image from 'next/image'
 class MyDocument extends Document {
   render() {
     return (
@@ -24,11 +23,6 @@ class MyDocument extends Document {
           <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff" />
           <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000" />
           <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
-
-          <a title="Privacy-friendly Web Analytics" href="https://clicky.com/101411466">
-            <Image alt="Clicky" src="//static.getclicky.com/media/links/badge.gif" border="0" />
-          </a>
-          <script async data-id="101411466" src="//static.getclicky.com/js"></script>
         </Head>
         <body className="bg-white text-black antialiased dark:bg-gray-900 dark:text-white">
           <Main />
