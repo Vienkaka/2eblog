@@ -1,14 +1,18 @@
+import Image from '@/components/Image'
 import Link from '@/components/Link'
 import PageTitle from '@/components/PageTitle'
-import SectionContainer from '@/components/SectionContainer'
 import { BlogSEO } from '@/components/SEO'
+import ScrollTopAndComment from '@/components/ScrollTopAndComment'
+import SectionContainer from '@/components/SectionContainer'
+import Comments from '@/components/comments'
 import siteMetadata from '@/data/siteMetadata'
 import formatDate from '@/lib/utils/formatDate'
-import Comments from '@/components/comments'
-import ScrollTopAndComment from '@/components/ScrollTopAndComment'
+import getImageRatio from '@/lib/utils/imageUtil'
 
 export default function PostLayout({ frontMatter, authorDetails, next, prev, children }) {
-  const { date, title } = frontMatter
+  const { date, title, thumnail } = frontMatter
+
+  const { width, height } = getImageRatio(thumnail)
 
   return (
     <SectionContainer>
@@ -36,6 +40,15 @@ export default function PostLayout({ frontMatter, authorDetails, next, prev, chi
             style={{ gridTemplateRows: 'auto 1fr' }}
           >
             <div className="divide-y divide-gray-200 dark:divide-gray-700 xl:col-span-3 xl:row-span-2 xl:pb-0">
+              {thumnail && (
+                <Image
+                  src={thumnail}
+                  alt={`thummail-${title}`}
+                  width={width}
+                  height={height}
+                  layout="responsive"
+                />
+              )}
               <div className="prose max-w-none pb-8 pt-10 dark:prose-dark">{children}</div>
             </div>
             <Comments frontMatter={frontMatter} />
