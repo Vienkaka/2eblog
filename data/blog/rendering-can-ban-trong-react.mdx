@@ -1,0 +1,43 @@
+---
+title: 'Rendering căn bản trong React'
+thumnail: 'https://fastly.picsum.photos/id/122/4147/2756.jpg?hmac=-B_1uAvYufznhjeA9xSSAJjqt07XrVzDWCf5VDNX0pQ'
+date: 2023-05-29T12:32:14Z
+tags: ['React']
+draft: false
+summary: 'Cùng tìm hiểu cách thức cập nhật dữ liệu trong React'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+## Giới thiệu
+
+Rendering trong react là quá trình cập nhật từ root cha xuống các component con. Các component con sẽ được gắn cờ để cập nhật thông qua sự kết hợp của props và state. JSX sẽ thông qua các cờ đã cắm sẽ re-render thông qua mehod render() và lưu đầu ra sau khi convert từ jsx sang js bằng React.createElement(). Sau khi render toàn bộ component con thì React tạo ra DOM ảo mới so với DOM hiện tại và cập nhật những dữ liệu cần thiết để cung cấp cho người dùng.
+
+## Các giai đoạn kết xuất DOM
+
+- Render phase: render component và tính toán sự thay đổi
+- Commit phase: cập nhật các thay đổi vào trong DOM
+  Sau khi hoàn thành Commit phase thì React chạy componentDidMount và componentDidUpdate hoặc useEffect() sau một thời gian ngắn.
+
+### Có 2 điểm chính cần chú ý:
+
+- Rendering không giống như update DOM
+- Một component hiển thị mà không có bất kỳ sự thay đổi nào
+
+### Lý do rendering
+
+Sau khi khởi tạo render hoàn thành thì có những lý do làm cho re-render:
+
+- this.setState() (class components)
+- this.forceUpdate() (class components)
+- useState() (function components)
+- useReducer() (function components)
+- ReactDOM.render() (on the root component)
+
+## Hành vi rendering
+
+Khi component cha render thì các component con cũng bị render 1 cách vô điều kiện. Nhưng có thể phần lớn các component con không có sự thay đổi với bản render trước đó,
+nên nếu như render component cha hoặc có thể là root thì làm tốn tài nguyên và hiệu năng của ứng dụng.
