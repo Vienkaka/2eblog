@@ -1,0 +1,147 @@
+---
+title: 'Hầu hết ứng cử viên bị failed với những câu hỏi Javascript (phần 2)'
+thumnail: 'https://fastly.picsum.photos/id/203/4032/3024.jpg?hmac=yeLnHOEAWUYBtMnanR0-0Q7gSvYbyxPG3PLJYvm170Q'
+date: 2023-05-30T12:32:14Z
+tags: ['javascript', 'interview']
+draft: false
+summary: 'Tiếp nối phần trước thì phần này vẫn là những câu hỏi trong serices những câu hỏi phỏng vấn về javascript'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+Những câu hỏi nhìn qua thì thấy rất căn bản và đơn giản nhưng để có được câu trả lời chính xác cần phải
+nắm vững những kiến thức về các dạng dữ liệu, quy tắc hoạt động, validation và còn nhiểu hơn thế nữa.{' '}
+
+## Dẫn dắt
+
+Bài trước chúng ta đã từng gặp 1 trường hợp có Promise bằng cách log để biết mức độ ưu tiên của các method trong Javascript, hôm nay chúng ta cùng đi thêm những câu hỏi về Promise:{' '}
+
+## Promise
+
+### Độ chính xác 46%
+
+```jsx
+Promise.resolve(1)
+  .then((x) => {
+    throw x
+  })
+  .then((x) => console.log(`then ${x}`))
+  .catch((err) => console.log(`error ${err}`))
+  .then(() => Promise.resolve(2))
+  .catch((err) => console.log(`error ${err}`))
+  .then((x) => console.log(`then ${x}`))
+```
+
+### Giải thích
+
+Đoạn mã sẽ chạy từng bước như sau:
+
+1. Đầu tiên thì **then** sẽ quăng ra 1 lỗi (rejected promise)
+2. Trình **then** tiếp theo sẽ không được kích hoạt vì trước đó đang có 1 lỗi đã được thông báo nên _catch_ sẽ chạy
+3. **catch** sẽ in ra và trả về 1 promise, giống như **then** thì **catch** phải return về 1 promise
+4. vì **catch** không trả về lỗi nên **then** tiếp theo sẽ được gọi và trả về promise có giá trị là 2
+5. và cuối cùng thì **then** sẽ in ra 2
+
+## Arrow functions
+
+### Độ chính xác 28%
+
+```jsx
+function Operations(coef) {
+  return {
+    sum: (...args) => arguments[0] + coef,
+  }
+}
+
+const ops = Operations(0.1)
+
+console.log(ops.sum(1, 2, 3))
+```
+
+### Giải thích
+
+Các arrow funtionc không có đối số (arguments) của riêng chúng, thay vào đó nó sẽ tham khảo các đối số trong phạm vi. Trong trường hợp trên thì coef = 0.1 và arguments[0] tham chiếu tới coef = 0.1. Vì vậy kết quả là 0.2
+
+### Độ chính xác 39%
+
+```jsx
+const Num = () => {
+  this.getNum = () => 10
+}
+
+Num.prototype.getNum = () => 20
+
+const num = new Num()
+
+console.log(num.getNum())
+```
+
+### Giải thích
+
+Arrow function không thể dùng như khởi tạo nên sẽ bị lỗi khi gọi _new_ và nó cũng không có thuộc tính _prototype_
+
+```
+TypeError: Cannot set properties of undefined (setting ‘getNum’)
+```
+
+## Variable scope
+
+### Độ chính xác 38%
+
+Đây là chủ đề được quan tâm nhiều không những độ phổ biến trong các cuộc phỏng vấn mà còn vì lý do thực thế. Khi mà bạn kiểm soát được vai trò và vị trí và quyền hạn của các biến sẽ giúp cho bạn gỡ lỗi mã tốt hơn.
+
+```jsx
+'use strict'
+
+console.log(foo())
+
+let bar = 'bar'
+
+function foo() {
+  return bar
+}
+
+bar = 'baz'
+```
+
+### Giải thích
+
+- Các biến let/ const được khai báo trong các vùng được gọi là **temporary dead zone**
+- Nếu như bạn cố gắng truy cập vào các biến let/ const mà chúng chưa được khai báo thì sẽ bị lỗi tham chiếu
+- Khi bạn truy cập vào các biến var chưa được khai báo thì nó sẽ trả về **undefined** nhưng const thì không vì nó không phải là 1 hằng số
+- Và lỗi sảy ra là: **ReferenceError: Cannot access ‘bar’ before initialization**
+
+### Độ chính xác 33%
+
+```jsx
+let func = function foo() {
+  return 'hello'
+}
+
+console.log(typeof foo)
+```
+
+### Giải thích
+
+- Vì foo được khởi tạo và gán cho func nên foo không phải là biến global
+- Kết quả là: undefined
+
+### Độ chính xác 36%
+
+```jsx
+function foo(bar, getBar = () => bar) {
+  var bar = 10
+  console.log(getBar())
+}
+
+foo(5)
+```
+
+### Giải thích
+
+- Việc khai báo các arguments và các biến trong functionc không ảnh hưởng tới nhau
+- Kết quả là 5
+
+Như vậy là mình đã đi qua thêm vài câu hỏi trong các cuộc phỏng vấn javascript. Hy vọng các bạn sẽ hiểu những gì mình đã chia sẻ và tốt hơn ngày hôm qua
