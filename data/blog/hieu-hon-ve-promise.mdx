@@ -1,0 +1,110 @@
+---
+title: 'Hiểu hơn về Promise'
+thumnail: 'https://fastly.picsum.photos/id/25/5000/3333.jpg?hmac=yCz9LeSs-i72Ru0YvvpsoECnCTxZjzGde805gWrAHkM'
+date: 2023-05-31T12:32:14Z
+tags: ['javascript']
+draft: false
+summary: 'Bạn nghĩ Promise thì đơn giản thôi và bạn biết làm thế nào để sử dụng chúng nhưng bạn đã biết nó làm việc như thế nào chưa?. Nếu chưa thì chúng ta cùng tìm hiểu từ căn bản tới nâng cao cách hoạt động của Promise nhá'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+Bạn nghĩ Promise thì đơn giản thôi và bạn biết làm thế nào để sử dụng chúng nhưng bạn đã biết nó làm việc như thế nào chưa?. Nếu chưa thì chúng ta cùng tìm hiểu từ căn bản tới nâng cao cách hoạt động của Promise nhá
+## Promise là gì?
+Nếu 1 ai đó yêu cầu bạn về 1 vài dữ liệu nào đó thì bạn sử dụng promise để gởi cho họ sau 1 khoảng thời gian nhất định hoặc là bạn sẽ trả về lỗi nếu có bất kỳ vấn đề gì. Vậy thì promise là đối tượng đại diện cho những hoạt động không đồng bộ để thực hiện 1 số yêu cầu hoặc trả về lỗi
+## Làm thế nào để tạo 1 Promise?
+```jsx
+let promise = new Promise(function(resolve, reject) {
+  // the function is executed automatically when the promise is constructed
+
+// after 1 second signal that the job is done with the result "done"
+setTimeout(() => resolve("done"), 1000);
+});
+
+````
+* 1 constructor sẽ được tạo và thực hiện callback trong chính nó
+*  resolve và reject là 2 tham số được javascript cung cấp để thực hiện các yêu cầu. Trong khi relsove thì trả về kết quả cho promise của bạn thì reject sẽ trả về 1 số lỗi
+**Promise còn chứa các thuộc tính:**
+* state: trạng thái khởi tạo là "pending" và sẽ chuyển thành "fulfilled" khi resolve hoặc rejected được gọi
+* result: trạng thái khởi tạo là undefined và sẽ chuyển thành value khi resolve trả về value và sẽ là error khi rejected trả về error
+ ![Screen Shot 2023-05-31 at 14.11.38.png](https://images.viblo.asia/becd4cfa-f377-4ec3-b502-34fd9d4726f4.png)
+## Làm thế nào để lấy dữ liệu từ promise
+```jsx
+promise.then(
+  function(result) { /* handle a successful result */ },
+  function(error) { /* handle an error */ }
+);
+````
+
+- Tham số đầu tiên của promise là 1 function sẽ trả về kết quả
+- Tham số thứ 2 của promise là 1 function sẽ trả về lỗi
+
+```jsx
+promise
+  .then(function (result) {
+    return someValue
+  })
+  .then(function (result2) {
+    /* result2 here is someValue */
+  })
+```
+
+- Hàm then trả về 1 promise nên các kết quả nhận về được liên kết với nhau
+
+### Phương thức tĩnh của Promise
+
+- Promise.all() - chờ cho các promise trong nó được resolved hoặc rejected
+- Promise.allSettled() - chờ cho các promise được settled
+- Promise.any () - lấy một promise bất kỳ để trả về
+- Promise.race() - chờ cho bất kỳ 1 promise nào resolved hoặc rejected
+- Promise.reject() - trả về 1 promise được rejected với lý do của nó
+- Promise.resolve() - trả về 1 promise được resolved với giá trị của nó
+
+```js
+Promise.resolve(5) -> returns promise<fulfilled>(5)
+Promise.resolve(Promise.resolve(5)) -> returns promise<fulfilled>(5)
+```
+
+## Bắt đầu đến với những điều tuyệt vời
+
+Cùng đi tìm hiểu sâu hơn làm thế nào để promise chuyển trạng thái từ pending sang fulfilled
+
+- Tạo 1 promise đơn giản resolve ngay về 1 giá trị
+
+```js
+let promise = new Promise(function (resolve, reject) {
+  resolve(5)
+})
+console.log(promise)
+```
+
+Bạn hy vọng mình sẽ thấy gì?. Đúng rồi đó là fulfilled promise với giá trị = 5
+
+- Bây giờ hãy resolve 1 promise
+
+```js
+let promise = new Promise(function (resolve, reject) {
+  resolve(Promise.resolve(5))
+})
+
+console.log(promise)
+```
+
+Bạn đang chờ đợi kết quả là fulfilled promise đúng không?. Nếu là vậy thì tôi sẽ rất thất vọng về bạn đó. Kết quả sẽ là pending.
+Bây giờ hãy tham khảo đầu ra là 1 promise trong setTimeout với delay = 0
+
+```js
+setTimeout(()=>console.log(promise),}
+```
+
+- Promise.resolve sẽ trả về fulfilled promise khi value là giá trị đơn giản
+- Promise.resolve sẽ trả về fulfilled promise khi value là một fulfilled promise
+- đối số resolve sẽ trả về fulfilled promise khi value là một giá trị đơn giản
+- đối số resolve sẽ trả về pending promise khi value là một fulfilled promise
+  ![Screen Shot 2023-05-31 at 16.23.21.png](https://images.viblo.asia/0594f30b-7c68-43f4-8fa0-649d67d59dfa.png)
+
+## Rút ra điều gì?
+
+**Rõ ràng Promise.resolve() và resolve() hoạt động khác nhau**
