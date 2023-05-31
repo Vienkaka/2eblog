@@ -8,6 +8,7 @@ import Link from '@/components/Link'
 import Tag from '@/components/Tag'
 import Pagination from '@/components/Pagination'
 import formatDate from '@/lib/utils/formatDate'
+import Image from '@/components/Image'
 
 const POSTS_PER_PAGE = 10
 
@@ -84,14 +85,14 @@ export default function Donate() {
           </div>
           <ul>
             {!donate.length && 'Không có dữ liệu'}
-            {donate.map(({ id, title, link, image, description }) => {
+            {donate.map(({ id, title, link, image, description, key_search }) => {
               return (
                 <li key={id} className="py-4">
                   <article className="space-y-2 xl:grid xl:grid-cols-4">
-                    <div className="bg-sky-500/100">
-                      <p>hello</p>
-                    </div>
-                    <div className="ml-1 space-y-3 xl:col-span-3">
+                    {/* <div> */}
+                    <Image alt={key_search} src={image} width={150} height={150} />
+                    {/* </div> */}
+                    <div className="ml-4 space-y-3 xl:col-span-3">
                       <div>
                         <h3 className="text-2xl font-bold leading-8 tracking-tight">
                           <a href={link} className="text-gray-900 dark:text-gray-100">

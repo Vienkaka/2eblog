@@ -55,7 +55,7 @@ const securityHeaders = [
 module.exports = withBundleAnalyzer({
   reactStrictMode: true,
   images: {
-    domains: ['fastly.picsum.photos'],
+    domains: ['fastly.picsum.photos', 'xlafgkujgoaelkhxzzpo.supabase.co'],
   },
   pageExtensions: ['js', 'jsx', 'md', 'mdx'],
   eslint: {
