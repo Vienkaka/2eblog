@@ -1,19 +1,13 @@
-import siteMetadata from '@/data/siteMetadata'
-import projectsData from '@/data/projectsData'
-import Card from '@/components/Card'
-import { PageSEO } from '@/components/SEO'
-import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react'
-import { useCallback, useEffect, useState } from 'react'
-import Link from '@/components/Link'
-import Tag from '@/components/Tag'
-import Pagination from '@/components/Pagination'
-import formatDate from '@/lib/utils/formatDate'
-import Image from '@/components/Image'
 import ClientPagination from '@/components/ClientPagination'
-import { toSimplest } from '@/lib/utils/stringUtil'
+import Image from '@/components/Image'
+import { PageSEO } from '@/components/SEO'
+import siteMetadata from '@/data/siteMetadata'
 import { debounce } from '@/lib/utils/debounce'
+import { toSimplest } from '@/lib/utils/stringUtil'
+import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import { useCallback, useEffect, useState } from 'react'
 
-const POSTS_PER_PAGE = 3
+const POSTS_PER_PAGE = 10
 
 export default function Donate() {
   const [params, setParams] = useState({ currentPage: 1, totalPages: 1 })

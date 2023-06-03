@@ -1,0 +1,99 @@
+---
+title: 'Đo hiệu xuất React bằng Profiler'
+thumnail: 'https://fastly.picsum.photos/id/193/3578/2451.jpg?hmac=M5yoazhwdwMa_27rC5-S50SNFvCy4Kni0wXoa6iVF0g'
+date: 2023-06-03T12:32:14Z
+tags: ['reactjs']
+draft: false
+summary: 'Đo hiệu suất frontend website là một quá trình quan trọng để đảm bảo trải nghiệm người dùng tốt và tối ưu hóa hiệu suất của ứng dụng giúp xác định các vấn đề về tài nguyên, chẳng hạn như kích thước file quá lớn, yêu cầu mạng không cần thiết, hoặc mã không tối ưu.'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} exclude="" toHeading={2} />
+
+Đo hiệu suất frontend website là một quá trình quan trọng để đảm bảo trải nghiệm người dùng tốt và tối ưu hóa hiệu suất của ứng dụng. Và trong React thì có 1 component giúp chúng ta kiểm tra được các thông số hiệu năng của các cây component là Profiler.
+
+## Giới thiệu
+
+Profiler là một component trong React được sử dụng để đo lường và phân tích hiệu suất của các component trong ứng dụng React. Nó cung cấp thông tin chi tiết về thời gian render, số lần render và các lần render lại của một component cụ thể.
+Component Profiler được sử dụng để phân tích hiệu suất và tìm ra các phần code có thể tối ưu hóa trong ứng dụng React. Nó giúp xác định các component mất nhiều thời gian render, các lần render không cần thiết hoặc việc truyền props không cần thiết đến các component con.
+
+## Props
+
+Để sử dụng Component Profiler, bạn cần bao bọc component muốn đo hiệu suất bên trong một Component Profiler khác. Component Profiler nhận các props như "id" (để xác định component), "onRender" (được gọi mỗi khi component được render lại), và "children" (component con bên trong).
+
+```jsx
+function onRender(id, phase, actualDuration, baseDuration, startTime, commitTime) {
+  // Aggregate or log render timings...
+}
+
+;<Profiler id="App" onRender={onRender}>
+  <App />
+</Profiler>
+```
+
+- id: cung cấp id để Profiler xác định được cây React để do hiệu xuất
+- onRender: sẽ chứa các thông số theo thứ tự như sau
+  _ **id**: id của component
+  _ **phase**: sự kiện xảy ra để render component. Có 3 sự kiện là moun, update và nested-update
+  _ **actualDuration**: Đây là thời gian thực tế mà component đã mất để render. actualDuration tính từ thời điểm component được khởi tạo cho đến khi component hoàn thành quá trình render và cập nhật giao diện. actualDuration cũng bao gồm thời gian các lần render lại của component. Thông qua actualDuration, bạn có thể biết được thời gian mà component tốn để render trong quá trình thực thi
+  _ **baseDuration**: Đây là thời gian ước lượng mà component đã tốn nếu không có bất kỳ thay đổi nào xảy ra trong component hoặc các component con của nó. baseDuration được tính toán dựa trên các tham số và lịch sử render trước đó của component. Nếu component không có bất kỳ sự thay đổi nào trong props hoặc state, baseDuration sẽ được sử dụng để ước lượng thời gian render
+  _ **startTime**: thời gian bắt đầu render
+  _ **commitTime**: thời gian kết thúc render
+  ![Screen Shot 2023-06-03 at 23.42.43.png](https://images.viblo.asia/8762be9a-3ab5-489a-a682-b637b612c5d5.png)
+
+## Ví dụ
+
+```jsx
+import React, { Profiler } from 'react'
+
+const Counter = ({ count }) => {
+  return <div>{count}</div>
+}
+
+const App = () => {
+  const onRenderCallback = (
+    id,
+    phase,
+    actualDuration,
+    baseDuration,
+    startTime,
+    commitTime,
+    interactions
+  ) => {
+    console.log(`Component render time: ${actualDuration} ms`)
+    console.log(`Component base time: ${baseDuration} ms`)
+  }
+
+  return (
+    <Profiler id="Counter" onRender={onRenderCallback}>
+      <Counter count={0} />
+    </Profiler>
+  )
+}
+
+export default App
+```
+
+Khi chạy ứng dụng, chúng ta sẽ nhìn thấy hai thông số actualDuration và baseDuration trong console.
+
+actualDuration: Đây là thời gian thực tế mà Counter component tốn để render. Nó sẽ thay đổi mỗi khi Counter được render lại, ví dụ khi state count thay đổi.
+baseDuration: Đây là thời gian ước lượng mà Counter component sẽ tốn nếu không có bất kỳ thay đổi nào xảy ra. Nếu chúng ta không thay đổi state count, baseDuration sẽ không thay đổi.
+Khi chúng ta thay đổi giá trị của state count và Counter được render lại, actualDuration sẽ thay đổi theo, trong khi baseDuration sẽ giữ nguyên vì không có sự thay đổi nào xảy ra.
+
+Ví dụ:
+
+Khi count = 0:
+
+actualDuration: 1 ms
+baseDuration: 1 ms
+Khi count = 5 (thay đổi):
+
+actualDuration: 2 ms
+baseDuration: 1 ms
+Khi count = 5 (không thay đổi):
+
+actualDuration: 1 ms
+baseDuration: 1 ms
+Như bạn có thể thấy, actualDuration phản ánh thời gian thực tế mà component tốn trong mỗi lần render, trong khi baseDuration chỉ thay đổi khi có sự thay đổi trong props hoặc state.
