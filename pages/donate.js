@@ -9,10 +9,12 @@ import Tag from '@/components/Tag'
 import Pagination from '@/components/Pagination'
 import formatDate from '@/lib/utils/formatDate'
 import Image from '@/components/Image'
+import ClientPagination from '@/components/ClientPagination'
 
-const POSTS_PER_PAGE = 10
+const POSTS_PER_PAGE = 3
 
 export default function Donate() {
+  const [params, setParams] = useState({ currentPage: 1, totalPages: 1 })
   const [donate, setDonate] = useState([])
   const [loading, setLoading] = useState(false)
   const [searchValue, setSearchValue] = useState('')
@@ -22,9 +24,10 @@ export default function Donate() {
     try {
       setLoading(true)
 
-      let { data, error, status } = await supabase
+      let { data, error, status, count } = await supabase
         .from('donate')
-        .select(`id, title, description, image, link`)
+        .select(`id, title, description, image, link`, { count: 'exact' })
+        .range(params.currentPage, params.currentPage + POSTS_PER_PAGE - 1)
 
       if (error && status !== 406) {
         throw error
@@ -32,6 +35,7 @@ export default function Donate() {
 
       if (data) {
         setDonate(data)
+        setParams((prev) => ({ ...prev, totalPages: Math.ceil(count / POSTS_PER_PAGE) }))
       }
     } catch (error) {
       alert('Error loading user data!')
@@ -39,16 +43,13 @@ export default function Donate() {
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [supabase, params.currentPage])
 
   useEffect(() => {
     getProfile()
   }, [getProfile])
 
-  const pagination = {
-    currentPage: 1,
-    totalPages: Math.ceil(donate.length / POSTS_PER_PAGE),
-  }
+  console.log('params=>', params)
 
   return (
     <>
@@ -110,8 +111,12 @@ export default function Donate() {
             })}
           </ul>
         </div>
-        {pagination && pagination.totalPages > 1 && !searchValue && (
-          <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} />
+        {params && params.totalPages > 1 && !searchValue && (
+          <ClientPagination
+            currentPage={params.currentPage}
+            totalPages={params.totalPages}
+            onChange={(pageNumber) => setParams((prev) => ({ ...prev, currentPage: pageNumber }))}
+          />
         )}
       </>
     </>
