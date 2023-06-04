@@ -1,0 +1,61 @@
+---
+title: 'So sánh hiệu năng giữa Vite và Webpack'
+thumnail: 'https://fastly.picsum.photos/id/231/4088/2715.jpg?hmac=PxhkmiNJrVS5AgI8U-r_IsWSN5a7cTjpjIbvmtpLMDI'
+date: 2023-06-04T12:32:14Z
+tags: ['vite', 'webpack']
+draft: false
+summary: 'Sau thời gian mình triển khai dự án Vite, mình đọc nhiều bài viết và mình thấy bài viết của anh quá hay nên mình muốn chia sẻ lại cho ae, giúp ae hiểu rõ hơn về hiệu năng của Vite và Webpack trong một vài trường hợp, từ đó giúp ae triển khai dự án hiệu quả hơn'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} exclude="" toHeading={2} />
+Dưới đây là bài viết mình tham khảo từ tác giả: **Ian VanSchooten** Và đây là bài viết của anh: https://storybook.js.org/blog/storybook-performance-from-webpack-to-vite/
+
+Sau thời gian mình triển khai dự án Vite, mình đọc nhiều bài viết và mình thấy bài viết của anh quá hay nên mình muốn chia sẻ lại cho ae, giúp ae hiểu rõ hơn về hiệu năng của Vite và Webpack trong một vài trường hợp, từ đó giúp ae triển khai dự án hiệu quả hơn.
+Trong bài viết thì anh lấy 1 dự án Storybook để đo hiệu năng. Storybook là 1 workshop chứa các thành phần UI.
+Test hiệu năng là kiểm tra dự án lần đầu được boot lên browser và khi re-rendering khi thay đổi các file lớn.
+Trong bài viết thì anh có sử dụng dự án **IBM Carbon Design System** 5 phương pháp cấu hình:
+
+- Webpack 4
+- Webpack 5
+- Webpack 5 LC/CS (**lazy compilation & code-splitting enabled**)
+- Vite
+- Vite CS (**code-splitting enabled**)
+
+Có 2 hoạt cảnh được sử dụng:
+
+- Trong quá trình phát triển ứng dụng DEVELOPMENT
+- Ứng dụng đã hoàn thành và được public trong môi trường PRODUCTION
+
+## Development (cold start)
+
+Đây là lúc chạy dev server và xem khoảng thời gian mà ứng dụng chạy lên trình duyệt **lần đầu tiên**
+Kết quả: với cấu hình mặc định của Webpack 5 và Webpack 4 để start và render project mất 60 và 59 giây => tương đương với nhau, nhưng với Webpack được cấu hình để lazyload và code-spliting thì thời gian đã giảm đi 1 nữa ( quá khủng khiếp ). Trong khi đó phía bên kia chuyến tuyến thì ông Vite với cấu hình mặc dịnh mất tận 103s ( ối dồi ôi - không phải cứ Vite là nhất nhan các bạn ), nhưng không sao vẫn còn chiến thần Vite(cs) chỉ mất 36s ( vẫn nhiều hơn Webpack(lc/cs) tận 6s trong trường hợp này là 20% rồi ).
+Cũng là Vite mà sao lạ lắm. Bởi vì Vite gởi toàn bộ tài nguyên lên browser mà không bundle nên mất rất nhiều thời gian.
+Trong khi Webpack gởi 16 (lc-cs) và 32 assets thì ông Vite gởi tận 1036 assets nếu không sử dụng code-spliting ( quá là khổng lồ - **nặng**). Khi Vite được bật cs thì cải thiện rõ rệt chỉ gởi 250 assets thôi ( giảm gần 90s - 65% ).
+![Screen Shot 2023-04-16 at 21.47.11.png](https://images.viblo.asia/fda3a6c4-63cd-4773-a8cf-165ddce52848.png)
+
+## Development with cache (Warm Start)
+
+Sau lần chạy đầu tiên thì project đã được cache vào browser và sẽ có tốc độ cải thiện cho những lần render tiếp theo
+Và kết quả là như này đây:
+![Screen Shot 2023-04-16 at 22.19.39.png](https://images.viblo.asia/3bea5094-8516-4684-8c7c-0671df242fb0.png)
+
+## Production build time
+
+Không giống như môi trường phát triển DEVELOPMENT thì ở môi trường PRODUCTION cần phải build thành các static file, và lúc này không cần sử dụng HMR. Vite sử dụng Rollup để build
+![Screen Shot 2023-04-16 at 22.23.08.png](https://images.viblo.asia/511822e4-ebeb-4ec0-ad49-75bacd25012e.png)
+
+## Production load size and time
+
+Vì Vite sử dụng Rollup để buil và tăng hiệu năng bằng phương pháp **Tree-Shaking** ( loại bỏ những tài nguyên không được sư dụng ) nên có chút cải thiện so với Webpack.
+![Screen Shot 2023-04-16 at 22.28.14.png](https://images.viblo.asia/a2d62ad4-cdaa-4ccf-a406-af84abec0817.png)
+
+## Rebuild time (Hot Module Reloading)
+
+Ae xem kết quả bên dưới sẽ thấy sự toả sáng của Vite. Vì sao vậy ư, vì Vite không bundle tài nguyên, nên có thể so sánh trực tiếp giữa file code và file chunk ở server, thì file nào có sự thay đổi thì chỉ update lại file đó thôi.
+![Screen Shot 2023-04-16 at 22.30.19.png](https://images.viblo.asia/d23d1345-d467-4ff7-b619-6bc3900d28f9.png)
+
+Như vậy là mình đã đi qua 1 vài trường hợp để so sánh hiệu năng của Vite với Webpack. Webpack thì cũng có webpack này webpack nọ và với Vite cũng thế. Nên ae chọn công cụ phát triển ứng dụng cho phù hợp và có được hiệu năng tốt nhất nhá.
