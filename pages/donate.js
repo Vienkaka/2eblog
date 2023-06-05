@@ -89,7 +89,7 @@ export default function Donate() {
             {donate.map(({ id, title, link, image, description, key_search }) => {
               return (
                 <li key={id} className="py-4">
-                  <article className="space-y-2 xl:grid xl:grid-cols-4">
+                  <article className="xl:grid xl:grid-cols-4">
                     {/* <div> */}
                     <Image alt={key_search} src={image} width={150} height={150} />
                     {/* </div> */}
