@@ -1,0 +1,162 @@
+---
+title: 'Tối ưu sử dụng Hooks trong React'
+thumnail: 'https://fastly.picsum.photos/id/244/4288/2848.jpg?hmac=R6j9PBP4aBk2vcEIoOPU4R_nuknizryn2Vq8GGtWTrM'
+date: 2023-06-06T12:32:14Z
+tags: ['reactjs', 'tips']
+draft: false
+summary: 'Xin chào các bạn, tiếp tục series về React thì hôm nay mình xin chia sẻ về cách sử dụng tối ưu các hooks trong React. Thì React hooks được release vào phiên bản v16. 8.0 cách đây cũng được 4 năm rồi, khi react hooks ra đời thì đã làm thay đổi tư duy lập trình của các lập trình viên. Và hôm nay mình muốn nói về việc chuyển đổi từ class component sang function components + hooks'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+Xin chào các bạn, tiếp tục series về React thì hôm nay mình xin chia sẻ về cách sử dụng tối ưu các hooks trong React. Thì React hooks được release vào phiên bản v16. 8.0 cách đây cũng được 4 năm rồi, khi react hooks ra đời thì đã làm thay đổi tư duy lập trình của các lập trình viên. Và hôm nay mình muốn nói về việc chuyển đổi từ class component sang function components + hooks
+
+## Vòng đời
+
+### Class component
+
+```javascript
+class Chart extends Component {
+  componentDidMount() {
+    // khi đã mount Chart
+  }
+  componentDidUpdate(prevProps) {
+    if (prevProps.data == props.data) return
+    // khi update dữ liệu
+  }
+  componentWillUnmount() {
+    // trước khi unmount Chart
+  }
+  render() {
+    return <svg className="Chart" />
+  }
+}
+```
+
+### Function component
+
+```javascript
+const Chart = ({ data }) => {
+  useEffect(() => {
+    // khi mount Chart hoặc update dữ liệu
+    return () => {
+      // khi update dữ liệu
+      // trước khi unmount chart
+    }
+  }, [data])
+  return <svg className="Chart" />
+}
+```
+
+## Cập nhật dữ liệu
+
+Sử dụng useEffect để nắm bắt vòng đời của React.
+Có phải bạn đang suy nghĩ useEffect thật là vi diêu không?😃😃😃. Nhưng mà chưa đâu thật sự useEffect không phải là hook để giải quyết mọi vấn đề. Hãy cùng mình tìm hiểu tiếp nhá.
+Bây giờ hãy xem một ví dụ khác biệt là muốn tính toán dữ liệu bằng hàm getDataWithinRange.
+
+### Class component
+
+```javascript
+class Chart extends Component {
+  state = {
+    data: null,
+  }
+  componentDidMount() {
+    const newData = getDataWithinRange(this.props.dateRange)
+    this.setState({ data: newData })
+  }
+  componentDidUpdate(prevProps) {
+    if (prevProps.dateRange != this.props.dateRange) {
+      const newData = getDataWithinRange(this.props.dateRange)
+      this.setState({ data: newData })
+    }
+  }
+  render() {
+    return <svg className="Chart" />
+  }
+}
+```
+
+### Function component
+
+```javascript
+const Chart = ({ dateRange }) => {
+  const [data, setData] = useState()
+  useEffect(() => {
+    const newData = getDataWithinRange(dateRange)
+    setData(newData)
+  }, [dateRange])
+  return <svg className="Chart" />
+}
+```
+
+useEffect đang cập nhật data dựa vào sự thay đổi của dateRange => khi prop dateRange thay đổi thì useEffect được kích hoạt và tính toán newData bằng function getDataWithinRange sau đó cập nhật lại dữ liệu bằng hook setData.
+Thay vì sử dụng 2 hook useEffect và useStatet thì ta có thể tối ưu bằng hook useMemo
+
+```javascript
+const Chart = ({ dateRange }) => {
+  const data = useMemo(() => getDataWithinRange(dateRange), [dateRange])
+  return <svg className="Chart" />
+}
+```
+
+Dưới đây là 1 ví dụ thấy sự tối ưu rõ rệt về code giữa class component và function component
+
+## Ví dụ
+
+### Class component
+
+```javascript
+class Chart extends Component {
+  state = {
+    data: null,
+    dimensions: null,
+    xScale: null,
+    yScale: null,
+  }
+  componentDidMount() {
+    const newData = getDataWithinRange(this.props.dateRange)
+    this.setState({ data: newData })
+    this.setState({ dimensions: getDimensions() })
+    this.setState({ xScale: getXScale() })
+    this.setState({ yScale: getYScale() })
+  }
+  componentDidUpdate(prevProps, prevState) {
+    if (prevProps.dateRange != this.props.dateRange) {
+      const newData = getDataWithinRange(this.props.dateRange)
+      this.setState({ data: newData })
+    }
+    if (prevProps.margins != this.props.margins) {
+      this.setState({ dimensions: getDimensions() })
+    }
+    if (prevState.data != this.state.data) {
+      this.setState({ xScale: getXScale() })
+      this.setState({ yScale: getYScale() })
+    }
+  }
+  render() {
+    return <svg className="Chart" />
+  }
+}
+```
+
+### Function component
+
+```javascript
+const Chart = ({ dateRange, margins }) => {
+  const data = useMemo(() => getDataWithinRange(dateRange), [dateRange])
+  const dimensions = useMemo(getDimensions, [margins])
+  const xScale = useMemo(getXScale, [data])
+  const yScale = useMemo(getYScale, [data])
+  return <svg className="Chart" />
+}
+```
+
+Như ví dụ trên class component phải quản lý quán nhiều state, trong khi function component thì chỉ cần giá trị của biến đầu ra. Mã ngắn hơn chưa chắc là dễ đọc hơn nhưng chắc chắn việc quản lý state sẽ dễ dàng hơn. Và thường thì các đoạn mã trong function component của chúng tôi ngắn hơn trong class component là từ 46% đến 50%
+
+### Lời kết
+
+Như vậy là mình cùng các bạn đã đi qua vòng đời của React để biết sự khác biệt của class component và function component, cũng như tìm hiểu useMemo để quản lý state trong React. Hy vọng các bạn sẽ có thêm những kiến thức giúp tối ưu code và maintain dễ dàng hơn về sau. Chúc các bạn có 1 ngày làm việc hiệu quả.
