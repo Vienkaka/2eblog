@@ -1,0 +1,241 @@
+---
+title: 'Hầu hết ứng cử viên bị failed với những câu hỏi Javascript'
+thumnail: 'https://fastly.picsum.photos/id/249/3000/2000.jpg?hmac=U2oOCXdXUwt6ftKMC4icF6eS8dGDUZJM_0-qi0JEqjk'
+date: 2023-06-05T12:32:14Z
+tags: ['reactjs']
+draft: false
+summary: 'Xin chào các bạn, React là thư viện của Javascrip dễ học và phát triển, nhưng để viết mã có hiệu suất thì cần nắm rõ các hooks, xử lý functions sao cho hiệu quả. Hôm nay mình sẽ chia sẻ các bạn 1 số phương pháp, hy vọng các bạn sẽ học được gì đó mới trong này hôm nay!'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+Đầu xuân xin chúc các bạn được nhiều sức khoẻ, làm ăn phát tài, công việc thuận lợi và gặp được nhiều
+may mắn nhá.
+
+### Giới thiệu
+
+Xin chào các bạn, React là thư viện của Javascrip dễ học và phát triển, nhưng để viết mã có hiệu suất thì cần nắm rõ các hooks, xử lý functions sao cho hiệu quả. Hôm nay mình sẽ chia sẻ các bạn 1 số phương pháp, hy vọng các bạn sẽ học được gì đó mới trong này hôm nay!
+
+## 1 số phương pháp
+
+### setState trong useEffect
+
+Mình có 1 mãng users sau đó dựa vào onChange của selector để setState userID
+
+```javascript
+import { useState } from 'react'
+
+const users = [
+  { id: '1', name: 'User One' },
+  { id: '2', name: 'User Two' },
+  { id: '3', name: 'User Three' },
+]
+
+function Users() {
+  const [userId, setUserId] = useState('1')
+
+  return (
+    <select value={userId} onChange={(e) => setUserId(e.target.value)}>
+      <option value="1">User One</option>
+      <option value="2">User Two</option>
+      <option value="3">User Three</option>
+    </select>
+    // muốn show user đã được chọn tại đây
+  )
+}
+```
+
+Bây giờ muốn show tên userID được chọn thì tạo 1 state user và thì thực hiện lắng nghe sự thay đổi của userID trong useEffect để setState user
+
+```javascript
+import { useState, useEffect } from 'react'
+
+function Users() {
+  const [userId, setUserId] = useState('')
+  const [selectedUser, setSelectedUser] = useState(undefined)
+
+  useEffect(() => {
+    setSelectedUser(users.find((u) => u.id === userId))
+  }, [userId])
+
+  return (
+    <>
+      <select value={userId} onChange={(e) => setUserId(e.target.value)}>
+        <option>Select a user</option>
+        <option value="1">User One</option>
+        <option value="2">User Two</option>
+        <option value="3">User Three</option>
+      </select>
+      {selectedUser && <p>The selected user is: {selectedUser.name}</p>}
+    </>
+  )
+}
+```
+
+Như trên thì component sẽ render 2 lần:
+
+1.  sau khi setUserId
+2.  sau khi setSelectedUser
+    Thay vì lắng nghe sự thay đổi trong userID trong useEffect thì ta tạo 1 biến để find user trong mãng users luôn
+
+```javascript
+function Users() {
+  const [userId, setUserId] = useState('')
+  const selectedUser = users.find((u) => u.id === userId)
+
+  return (
+    <>
+      <select value={userId} onChange={(e) => setUserId(e.target.value)}>
+        <option>Select a user</option>
+        <option value="1">User One</option>
+        <option value="2">User Two</option>
+        <option value="3">User Three</option>
+      </select>
+      {selectedUser && <p>The selected user is: {selectedUser.name}</p>}
+    </>
+  )
+}
+```
+
+Hoặc không cần tạo biến
+
+```javascript
+function Users() {
+  const [userId, setUserId] = useState('')
+
+  return (
+    <>
+      <select value={userId} onChange={(e) => setUserId(e.target.value)}>
+        <option>Select a user</option>
+        <option value="1">User One</option>
+        <option value="2">User Two</option>
+        <option value="3">User Three</option>
+      </select>
+      {selectedUser && <p>The selected user is: {users.find((u) => u.id === userId)}</p>}
+    </>
+  )
+}
+```
+
+### setState trong event
+
+```javascript
+function App() {
+  const [name, setName] = useState('')
+  const [age, setAge] = useState('')
+
+  const handleChange = (newName, newAge) => {
+    setName(newName)
+    setAge(newAge)
+    // other code...
+    console.log(name, age) // tại đây thì vẫn là giá trị cũ
+  } //  đây là điểm cuối để thực hiện update, re-render
+}
+```
+
+### unmount hook
+
+Trong useEffect cho phép kết xuất các functions chạy lần lượt, và khi unmount component thì cần phải clear functions để tăng hiệu suất cũng như tránh memory leak( các bạn tìm hiểu thêm giúp mình nhá ). Để thực hiện unmount thì trong useEffect thì ta thực hiện trong return của useEffect
+
+```javascript
+useEffect(() => {
+  button.addEventListener('click', listener)
+
+  return () => {
+    button.removeEventListener('click', listener)
+  }
+}, [])
+```
+
+Function removeEventListener giúp clear sự kiện click sau khi unmount component
+
+```javascript
+useEffect(() => {
+  let ignoreThisReq = false
+
+  fetch(`/api/users/userId`).then((res) => {
+    // if this is true, this effect already belongs to a previous render
+    // so ignore the received data
+    if (!ignoreThisReq) {
+      setUser(res.data)
+    }
+  })
+
+  return () => {
+    // clean up function is called, so discard the response from API
+    ignoreThisReq = true
+  }
+}, [userId])
+```
+
+### Thay đổi state dựa vào prevState
+
+```javascript
+import { useState } from 'react'
+
+export default function App() {
+  const [count, setCount] = useState(0)
+
+  const handleClick = () => {
+    setCount(count + 1)
+    // thực hiện logic bla bloa
+
+    setCount(count + 1)
+    console.log(count)
+  }
+  return (
+    <div className="App">
+      <h1>Hello CodeSandbox</h1>
+      <h2>Start editing to see some magic happen!</h2>
+      <button onClick={handleClick}>Nhấn</button>
+    </div>
+  )
+}
+```
+
+Như dòng code trên thì mỗi lần các bạn nhấn onClick thì giá trị của log là bao nhiêu?
+Và đây là kết quả
+![Screen Shot 2023-02-02 at 11.37.28.png](https://images.viblo.asia/d5691c11-053e-48e6-80e6-44857721f53b.png)
+Vì khi thực hiện nhiều setState trong 1 function mà setState lại lấy count từ bên ngoài function phải đợi function đó thực hiện xong thì mới lấy được giá trị mới nhất của count. Để khắc phục điều đó thì
+
+```javascript
+import { useState } from 'react'
+
+export default function App() {
+  const [count, setCount] = useState(0)
+
+  const handleClick = () => {
+    setCount((prev) => prev + 1)
+    // thực hiện logic bla bloa
+
+    setCount((prev) => prev + 1)
+    console.log(count)
+  }
+
+  return (
+    <div className="App">
+      <h1>Hello CodeSandbox</h1>
+      <h2>Start editing to see some magic happen!</h2>
+      <button onClick={handleClick}>Nhấn</button>
+    </div>
+  )
+}
+```
+
+Và đây là kết quả
+![Screen Shot 2023-02-02 at 11.40.52.png](https://images.viblo.asia/51f149c3-8f40-4764-b68d-117da327a1b3.png)
+
+### Bonus
+
+Và dưới đây là 1 số mẹo giúp bạn clean code hơn nè:
+
+- đặt tên rõ ràng
+- mỗi function chỉ nên làm 1 việc
+- mỗi component thì thể hiện đúng chức năng của nó
+- comment khi cần thiết
+
+### Kết thúc
+
+Như trên thì mình đã chia sẻ vài phương pháp giúp các bạn hiểu rõ hơn về state, quản lý và thay đổi trạng thái state. Hy vọng các bạn sẽ học hỏi được nhiều kiến thức mới và chúc một ngày tốt lành.
