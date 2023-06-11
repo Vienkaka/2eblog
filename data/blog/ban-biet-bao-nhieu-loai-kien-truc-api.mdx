@@ -1,0 +1,109 @@
+---
+title: 'Đo hiệu xuất React bằng Profiler'B
+thumnail: 'https://fastly.picsum.photos/id/193/3578/2451.jpg?hmac=M5yoazhwdwMa_27rC5-S50SNFvCy4Kni0wXoa6iVF0g'
+date: 2023-06-11T12:32:14Z
+tags: ['reactjs']
+draft: false
+summary: 'Hôm nay mình sẽ chia sẻ cho các bạn những loại kiến trúc APIs và cùng tìm hiểu xem mỗi loại sẽ áp dụng phổ biến cho những hệ thống như thế nào.'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} exclude="" toHeading={2} />
+
+Hôm nay mình sẽ chia sẻ cho các bạn những loại kiến trúc APIs và cùng tìm hiểu xem mỗi loại sẽ áp dụng phổ biến cho những hệ thống như thế nào.
+
+## Bạn biết bao nhiêu loại kiến trúc API?
+
+![Screen Shot 2023-06-11 at 11.28.31.png](https://images.viblo.asia/e18e07c0-29ed-441f-8221-695086ea4c43.png)
+Các kiến trúc này xác định các thành phần khác nhau để tương tác API của các ứng dụng với nhau.
+
+### SOAP Simple Object Access Protocol)
+
+Là một giao thức truyền tải dữ liệu trong môi trường phân tán, được sử dụng để giao tiếp giữa các ứng dụng phần mềm. SOAP sử dụng XML (eXtensible Markup Language) làm định dạng dữ liệu và giao tiếp thông qua các tin nhắn (messages) dựa trên giao thức HTTP, HTTPS, SMTP, hoặc TCP/IP.
+
+SOAP được thiết kế để hỗ trợ việc truyền tải dữ liệu qua mạng và giao tiếp giữa các ứng dụng phân tán. Nó cho phép các ứng dụng được viết bằng các ngôn ngữ lập trình khác nhau và chạy trên các nền tảng khác nhau có thể giao tiếp và trao đổi thông tin với nhau.
+
+Các tin nhắn SOAP được đóng gói trong các phần tử XML và có thể chứa các yêu cầu (request) hoặc phản hồi (response) giữa hai ứng dụng. Tin nhắn SOAP chứa các phần tử như Envelope (bao gồm Header và Body) và mô tả nội dung dữ liệu cần truyền tải.
+
+SOAP thường được sử dụng trong các ứng dụng phức tạp, đặc biệt là trong các hệ thống phân tán và các dịch vụ web (web services). Nó cung cấp một phương thức chuẩn để truyền tải và trao đổi dữ liệu giữa các ứng dụng và hỗ trợ tính năng như mã hóa, bảo mật và xác thực.
+
+### RESTful (Representational State Transfer)
+
+Là một kiến trúc và giao thức truyền tải dữ liệu trong ứng dụng phân tán. RESTful là thuật ngữ được sử dụng để mô tả việc thiết kế và triển khai các dịch vụ web (web services) theo nguyên tắc của REST.
+
+RESTful sử dụng giao thức HTTP (Hypertext Transfer Protocol) và các phương thức HTTP như GET, POST, PUT, DELETE để truyền tải và thao tác dữ liệu. Các tài nguyên (resources) trong RESTful được đại diện bằng các URI (Uniform Resource Identifier) và truy cập thông qua các endpoint.
+
+RESTful khuyến khích việc sử dụng các phương thức HTTP một cách có ý nghĩa để thực hiện các thao tác CRUD (Create, Read, Update, Delete) trên tài nguyên. Ví dụ, để lấy thông tin về một tài nguyên, ta sử dụng phương thức GET và endpoint tương ứng. Để tạo mới một tài nguyên, ta sử dụng phương thức POST và endpoint tương ứng, và cứ thế.
+
+Các dịch vụ web RESTful không lưu trạng thái (stateless), nghĩa là mỗi yêu cầu từ client đến server đều chứa đủ thông tin cần thiết để server xử lý yêu cầu đó mà không cần lưu trữ thông tin trạng thái từ yêu cầu trước đó. Server không giữ bất kỳ thông tin trạng thái nào của client, điều này giúp giảm độ phức tạp và tăng khả năng mở rộng của hệ thống.
+
+RESTful thường được sử dụng rộng rãi trong việc xây dựng các ứng dụng web, dịch vụ web và các API (Application Programming Interface). Nó giúp tạo ra các giao diện đơn giản, dễ hiểu, linh hoạt và có thể mở rộng.
+
+### GraphQL
+
+Là một ngôn ngữ truy vấn dữ liệu và một giao thức được phát triển bởi Facebook vào năm 2015. Nó được thiết kế để giải quyết các vấn đề phổ biến liên quan đến việc truy vấn dữ liệu từ máy chủ và cung cấp một phương thức truy vấn linh hoạt hơn so với các giao thức truy vấn dữ liệu truyền thống như REST.
+
+GraphQL cho phép người dùng yêu cầu chỉ chính xác dữ liệu mà họ cần, và trả về các kết quả dữ liệu tương ứng. Thay vì truy vấn tài nguyên cụ thể như REST, GraphQL cho phép người dùng xác định cấu trúc truy vấn của mình và lấy về dữ liệu tương ứng theo cấu trúc đó.
+
+Ưu điểm chính của GraphQL bao gồm:
+
+- Tiết kiệm băng thông: GraphQL cho phép chỉ trả về dữ liệu yêu cầu, giúp giảm lượng dữ liệu truyền qua mạng.
+- Tính linh hoạt: GraphQL cho phép người dùng xác định đúng các trường và mối quan hệ dữ liệu mà họ muốn lấy, đồng thời cũng hỗ trợ các truy vấn đa bảng (nested query).
+- Hiệu suất tốt: GraphQL sử dụng cơ chế batch truy vấn, cho phép gửi nhiều truy vấn một lúc và nhận về kết quả tương ứng, giúp tăng hiệu suất truy vấn.
+- Đúng phiên bản: GraphQL cho phép người dùng xác định phiên bản dữ liệu mà họ muốn, đảm bảo rằng các thay đổi trong dữ liệu không làm hỏng các ứng dụng sử dụng API.
+
+GraphQL thường được sử dụng trong các trường hợp:
+
+- Ứng dụng có nhu cầu truy vấn dữ liệu phức tạp: GraphQL cho phép lập trình viên yêu cầu chính xác các trường dữ liệu mà họ cần, giúp tránh việc truyền những dữ liệu không cần thiết. Điều này giúp giảm tải cho server và tăng hiệu suất truy vấn.
+- Môi trường phát triển đa nền tảng: GraphQL cho phép lập trình viên xây dựng API độc lập với các nền tảng cụ thể. Client có thể yêu cầu dữ liệu từ API GraphQL mà không cần phải biết sự tồn tại của các endpoint riêng biệt cho từng nền tảng.
+- Tích hợp dữ liệu từ nhiều nguồn khác nhau: GraphQL cho phép tổng hợp dữ liệu từ nhiều nguồn khác nhau vào một lời gọi duy nhất. Điều này rất hữu ích trong trường hợp cần lấy dữ liệu từ nhiều service hoặc microservices khác nhau.
+- Phát triển ứng dụng di động: GraphQL rất phù hợp cho việc phát triển ứng dụng di động, vì nó cho phép lập trình viên chỉ yêu cầu các trường dữ liệu cần thiết cho giao diện người dùng di động, giúp giảm tải mạng và tăng tốc độ truy vấn.
+- Hỗ trợ độ phân giải mạnh mẽ: GraphQL cung cấp khả năng độ phân giải dữ liệu linh hoạt, cho phép lập trình viên xử lý việc lấy dữ liệu từ các nguồn khác nhau và tổ chức dữ liệu theo nhu cầu của ứng dụng.
+
+### gRPC
+
+Là một giao thức mã nguồn mở được phát triển bởi Google, được sử dụng để xây dựng dịch vụ mạng dựa trên RPC (Remote Procedure Call - Gọi thủ tục từ xa). gRPC cho phép các ứng dụng chạy trên các hệ thống khác nhau và viết bằng các ngôn ngữ lập trình khác nhau có thể giao tiếp với nhau một cách dễ dàng và hiệu quả.
+
+gRPC sử dụng giao thức HTTP/2 để truyền tải dữ liệu, cho phép việc gửi và nhận các yêu cầu và phản hồi trên một kết nối duy nhất, tạo ra sự tương tác hiệu quả hơn so với các giao thức truyền thống khác như REST.
+
+Ưu điểm chính của gRPC bao gồm:
+
+- Hiệu suất cao: gRPC sử dụng giao thức HTTP/2 và định dạng dữ liệu nhị phân Protocol Buffers, cho phép truyền tải dữ liệu nhanh chóng và hiệu quả hơn.
+- Được tạo ra để hỗ trợ nhiều ngôn ngữ lập trình: gRPC hỗ trợ nhiều ngôn ngữ lập trình phổ biến như Java, C++, Python, Go, Ruby, C# và nhiều ngôn ngữ khác.
+- Tích hợp mã nguồn mạnh mẽ: gRPC cung cấp mã nguồn tự động hóa, giúp tạo ra mã client và server từ các đặc tả gRPC một cách dễ dàng.
+- Hỗ trợ xác thực và mã hóa: gRPC hỗ trợ các phương thức xác thực và mã hóa để đảm bảo tính bảo mật của dữ liệu truyền tải.
+
+gRPC được sử dụng rộng rãi trong các hệ thống phân tán, microservices và dịch vụ web hiệu suất cao, nơi hiệu suất và tốc độ truyền tải dữ liệu là yếu tố quan trọng.
+
+### WebSocket
+
+Là một giao thức truyền tải dữ liệu hai chiều (full-duplex) và liên tục giữa máy khách (client) và máy chủ (server) trên nền tảng web. Giao thức này cho phép thiết lập một kết nối liên tục và hai chiều giữa máy khách và máy chủ, trong đó cả hai bên có thể gửi và nhận dữ liệu mà không cần phải tạo các yêu cầu HTTP mới mỗi lần.
+
+WebSocket cung cấp một kênh truyền thông thời gian thực và liên tục, cho phép gửi và nhận dữ liệu theo thời gian thực mà không cần tải lại trang hoặc gửi yêu cầu từ phía máy khách. Nó tạo ra một kết nối TCP hoặc TLS ổn định và duy trì liên tục để truyền tải dữ liệu trực tiếp giữa máy khách và máy chủ.
+
+Ưu điểm chính của WebSocket bao gồm:
+
+- Liên tục và hai chiều: WebSocket cho phép gửi và nhận dữ liệu liên tục, không phụ thuộc vào các yêu cầu HTTP mới.
+- Hiệu suất cao: WebSocket giảm thiểu overhead truyền thông và giúp giảm thiểu việc gửi và nhận các tiêu đề không cần thiết, làm tăng hiệu suất và tốc độ truyền tải dữ liệu.
+- Thời gian thực: WebSocket cho phép gửi và nhận dữ liệu theo thời gian thực, phù hợp cho các ứng dụng đòi hỏi truyền tải dữ liệu nhanh và liên tục như trò chuyện trực tuyến, đồng bộ hóa dữ liệu và thông báo trực tiếp.
+
+WebSocket được sử dụng rộng rãi trong các ứng dụng web thời gian thực như trò chuyện trực tuyến, trò chơi đa người chơi, cập nhật dữ liệu trực tiếp và ứng dụng theo thời gian thực khác.
+
+### WebHook
+
+Là một cơ chế để truyền thông tin tự động và không đồng bộ từ một ứng dụng hoặc dịch vụ tới một ứng dụng hoặc dịch vụ khác thông qua giao thức HTTP. Khi sự kiện xảy ra trong ứng dụng nguồn (source application), một HTTP request sẽ được gửi tới một URL đích (destination URL) được xác định trước, thông báo cho ứng dụng đích (destination application) về sự kiện đã xảy ra.
+
+Webhook cho phép ứng dụng gửi dữ liệu trực tiếp tới ứng dụng khác mà không cần phải chờ yêu cầu (request) từ phía ứng dụng đích. Nó tạo ra một kết nối hai chiều, trong đó thông tin có thể được truyền và nhận thông qua các HTTP request và response. Webhook thường được sử dụng để cung cấp thông báo, đồng bộ dữ liệu và kích hoạt hành động tự động trong các ứng dụng hoặc hệ thống.
+
+Khi sự kiện xảy ra trong ứng dụng nguồn, một HTTP request sẽ được gửi tới URL đích đã được đăng ký trước. Ứng dụng đích sẽ xử lý request và thực hiện các hành động tương ứng với sự kiện đã xảy ra trong ứng dụng nguồn. Ví dụ, một ứng dụng có thể sử dụng webhook để thông báo cho ứng dụng khác về việc có một đơn hàng mới được đặt, hoặc để đồng bộ dữ liệu giữa các hệ thống.
+
+Webhook giúp tạo kết nối linh hoạt và tự động giữa các ứng dụng và dịch vụ khác nhau, cho phép chúng tương tác và chia sẻ thông tin một cách chính xác và kịp thời.
+
+Webhook thường được sử dụng trong các trường hợp sau:
+
+- Đồng bộ dữ liệu: Webhook được sử dụng để thông báo và đồng bộ dữ liệu giữa hai hệ thống khác nhau. Khi một sự kiện xảy ra trên một hệ thống (ví dụ: tạo đơn hàng, cập nhật thông tin), webhook sẽ gửi một HTTP request chứa dữ liệu liên quan đến sự kiện đó đến một URL được xác định trước đó. Điều này giúp các hệ thống có thể liên tục cập nhật thông tin một cách tự động và đồng bộ.
+- Kích hoạt các hành động tự động: Webhook được sử dụng để kích hoạt các hành động tự động khi xảy ra sự kiện cụ thể. Ví dụ, khi một email mới được nhận, một webhook có thể được gửi để thông báo cho hệ thống khác xử lý email đó một cách tự động.
+- Tích hợp với dịch vụ bên ngoài: Webhook cho phép tích hợp ứng dụng của bạn với các dịch vụ bên ngoài, như hệ thống thanh toán, dịch vụ tin nhắn, dịch vụ xác thực, và nhiều hơn nữa. Bằng cách sử dụng webhook, bạn có thể nhận thông báo và tương tác với các sự kiện và dữ liệu từ các dịch vụ này.
+- Tích hợp với hệ thống bên thứ ba: Webhook được sử dụng để kết nối ứng dụng của bạn với hệ thống của bên thứ ba, cho phép trao đổi dữ liệu và thông báo giữa hai hệ thống. Ví dụ, khi một bài viết mới được đăng trên blog của bạn, bạn có thể gửi một webhook đến hệ thống quản lý email để thông báo cho khách hàng về bài viết đó.
