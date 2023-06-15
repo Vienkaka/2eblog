@@ -1,0 +1,42 @@
+---
+title: 'Postman | Tạo và gửi API'
+thumnail: 'https://fastly.picsum.photos/id/617/2509/1673.jpg?hmac=FyFaMt07sniSty8upa_5kIkAOQUy7OFnjcrPf6hISYk'
+date: 2023-06-15T12:32:14Z
+tags: ['postman']
+draft: false
+summary: 'Đơn giản để tạo và gửi request API đến server'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+Với Postman thì có thể thêm, sửa, xóa dữ liệu. Xây dựng hoặc testing bất kì API nào hoặc có thể tích hợp API bên thứ 3. Có thể gởi request với những yêu cầu paramater, header, body.
+
+## Mỗi API request sử dụng 1 phương thức HTTPT. GET, POST, PATCH, PUT, và DELETE
+
+- GET nhận DATA từ API
+- POST tạo mới DATA tới 1 API
+- PATCH và PUT là cập nhật DATA đã tồn tại
+- DELETE xóa DATA từ API
+
+### Các bước tạo API
+
+1. Nhấn dấu + hoặc nhấn new để tạo mới request
+2. Dán đường dẫn
+3. Thêm params
+4. Chọn phương thức
+
+![Gởi request trên Postman](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/affiliate/cource/request_api_postman.jpeg)
+
+** Trong trường hợp trên **
+
+- Đường dẫn là: postman-echo.com/get
+- Phương thức GET
+- Response là args, header và 1 số thành phần khác
+
+### Nhóm các API cùng loại
+
+Những API cùng truy cập tới 1 đối tượng nên được gom nhóm để dễ quản lý. Như trong trường hợp dưới được gom nhóm theo Customers, Accounts, Communications
+![Nhóm API](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/affiliate/cource/postman_group_api.jpeg)
