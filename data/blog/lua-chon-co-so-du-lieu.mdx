@@ -1,0 +1,46 @@
+---
+title: 'Lựa chọn cơ sở dữ liệu phù hợp (Phần 1)'
+thumnail: 'https://fastly.picsum.photos/id/27/3264/1836.jpg?hmac=p3BVIgKKQpHhfGRRCbsi2MCAzw8mWBCayBsKxxtWO8g'
+date: 2023-06-16T12:32:14Z
+tags: ['tips']
+draft: false
+summary: 'Trong công nghệ tạo API, sự thành công của 1 ứng dụng thường phụ thuộc vào việc lựa chọn cơ sở dữ liệu đúng đắn. Việc đối mặt với nhiều công nghệ bắt buộc lập trình viên phải có sự lựa chọn cơ sở dữ liệu tốt nhất dựa trên những yêu cầu đã có'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+Trong bài viết này chúng ta sẽ cùng đi tìm hiểu cách thức lựa chọn hệ sơ cở dữ liệu sao cho phù hợp và tối ưu nhất trong dự án của chúng ta. Chúng ta cùng đi sâu phân tích cơ sở dữ liệu để lựa chọn sao cho vừa tối ưu được hiệu năng, giảm chi phí và các yếu tố khác phải đánh đổi.
+
+![Bảng danh sách dabase](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/affiliate/cource/database_selection.jpeg)
+
+## Hiểu được kiểu dữ liệu
+
+Để đưa ra quyết định tốt nhất các có những loại CSDL phổ biến. Trong phần này sẽ đi qua những cơ sở dữ liệu phổ biến và cùng so sánh các trường hợp sử dụng của chúng.
+![Database Types](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/affiliate/cource/Screen%20Shot%202023-06-16%20at%2014.04.03.png)
+
+### Relational Databases
+
+Relational Databases là kiểu dữ liệu quan hệ dựa trên mối quan hệ giữa các thực thể tham gia, mỗi thực thể sẽ được đại diện bằng 1 bảng và chứa các cột thể hiện thuộc tính của thực thể đó.
+Vì các thực thể có mối quan hệ với nhau thông qua các cột trong bảng cơ sở dữ liệu nên sẽ hỗ trợ những truy vấn phức tạp.
+
+### Tính năng nỗi bật của kiểu dữ liệu quan hệ:
+
+- Dữ liệu có cấu trúc: Dữ liệu trong cơ sở dữ liệu quan hệ được lưu trữ trong các bảng với các schema đã được xác định trước, điều này giúp dữ liệu dễ dàng được bảo trì và xử lý với khối dữ liệu lớn
+- Mối quan hệ và tham chiếu: Mối quan hệ giữa các bảng trong cơ sở dữ liệu quan hệ được xác định bởi khóa chính và khóa ngoại, đảm bảo tính toàn vẹn tham chiếu. Tính năng này cho phép truy vấn hiệu quả dữ liệu liên quan và hỗ trợ các mối quan hệ dữ liệu phức tạp
+- Hỗ trợ SQL: Cơ sở dữ liệu quan hệ sử dụng Ngôn ngữ truy vấn có cấu trúc (SQL) để truy vấn, thao tác và quản lý dữ liệu. SQL là một ngôn ngữ mạnh mẽ và được áp dụng rộng rãi, cho phép các nhà phát triển thực hiện các truy vấn và thao tác dữ liệu phức tạp
+- Tính nhất quán và toàn vẹn: Dựa vào mối quan hệ giữa các bảng nên dữ liệu sẽ được liên kết trạng thái. Khi thao tác dữ liệu giữa các bảng thì sẽ mang trạng thái chung hoặc thành công, hoặc thất bại
+- Indexing và tối ưu hóa: Cơ sở dữ liệu quan hệ cung cấp nhiều kỹ thuật lập chỉ mục và chiến lược tối ưu hóa truy vấn, giúp cải thiện hiệu suất truy vấn và giảm mức tiêu thụ tài nguyên
+
+### Một số nhược điểm của kiểu dữ liệu quan hệ:
+
+- Khả năng mở rộng hạn chế: Việc mở rộng cơ sở dữ liệu quan hệ theo chiều ngang (thêm nhiều nút hơn) có thể là một thách thức, đặc biệt khi so sánh với một số cơ sở dữ liệu NoSQL được thiết kế cho môi trường phân tán
+- Ràng buộc: Như có đề cập ở trên về tính nhất quán thì các thực thể trong cơ sở dữ liệu có mối liên kết với nhau, khi xoá hoặc sửa 1 thực thể bất kỳ đôi lúc gặp khó khăn, vì việc thay đổi lược đồ có thể yêu cầu sửa đổi đáng kể đối với dữ liệu và các thực thể liên quan
+- Hiệu năng: Mặc dù cho phép truy vấn quan hệ phức tạp với tập dữ liệu lớn tuy nhiên gặp phải vấn đề về hiệu năng.
+- Không phù hợp với dữ liệu không có cấu trúc như: dữ liệu cảm biến, hình ảnh,...
+
+Cơ sở dữ liệu quan hệ phổ biến bao gồm MySQL, PostgreSQL, Microsoft SQL Server và Oracle. Mỗi tùy chọn này đều có các tính năng, điểm mạnh và điểm yếu riêng, khiến chúng phù hợp với các trường hợp và yêu cầu sử dụng khác nhau. Khi xem xét một cơ sở dữ liệu quan hệ, điều cần thiết là phải đánh giá các nhu cầu cụ thể của ứng dụng về tính nhất quán của dữ liệu, hỗ trợ cho các truy vấn phức tạp và khả năng mở rộng, trong số các yếu tố khác.
+
+![Bảng đánh giá](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/affiliate/cource/Screen%20Shot%202023-06-16%20at%2014.25.29.png)
