@@ -1,0 +1,41 @@
+---
+title: 'Quá trình phát triển kiến trúc APIs'
+thumnail: 'https://fastly.picsum.photos/id/677/4288/2848.jpg?hmac=9G3TRArVIg964T44P-E2MTu5_9Fz2juxO9meRramm_4'
+date: 2023-06-17T12:32:14Z
+tags: ['apis']
+draft: false
+summary: 'API là một tập hợp các giao thức xác định cách các thành phần hệ thống tương tác với nhau. Khi phong cách kiến ​​trúc phát triển, API đã trở nên nổi bật trong những năm gần đây'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+API là một tập hợp các giao thức xác định cách các thành phần hệ thống tương tác với nhau. Khi phong cách kiến ​​trúc phát triển, API đã trở nên nổi bật trong những năm gần đây.
+Sơ đồ bên dưới cho thấy mức độ gia tăng của các dịch vụ siêu nhỏ và ứng dụng gốc trên đám mây mang lại mức độ chi tiết cao hơn cho các dịch vụ.
+Các lệnh gọi đang xử lý trong các ứng dụng nguyên khối chuyển đổi thành các lệnh gọi liên quá trình trong các ứng dụng microservice và serverless.
+Ngoài ra, mỗi quy trình có thể nằm trên một máy chủ vật lý khác và các cuộc gọi dịch vụ có thể không thành công do các sự cố mạng khác nhau.
+
+![Quá trình phát triển kiến trúc APIs](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/affiliate/cource/Screen%20Shot%202023-06-17%20at%2010.11.52.png)
+
+## Sự phát triển
+
+- Monolithic: Monolithic là một kiến trúc phát triển phần mềm truyền thống, trong đó toàn bộ ứng dụng được xây dựng và triển khai thành một đơn vị duy nhất. Trong kiến trúc monolithic, tất cả các thành phần của ứng dụng (ví dụ: giao diện người dùng, logic xử lý, cơ sở dữ liệu) được kết hợp trong một hệ thống duy nhất. Điều này có thể dẫn đến khó khăn trong việc mở rộng và duy trì ứng dụng khi nó phát triển.
+- SOA (Service-Oriented Architecture): SOA là một kiến trúc phát triển phần mềm, trong đó ứng dụng được phân chia thành các dịch vụ độc lập. Các dịch vụ này thực hiện một chức năng cụ thể và có thể tương tác với nhau thông qua giao diện chuẩn như HTTP hoặc SOAP. SOA nhấn mạnh việc phân chia ứng dụng thành các thành phần nhỏ hơn, linh hoạt và có thể tái sử dụng.
+- Microservices: Microservices là một kiến trúc phát triển phần mềm mà ứng dụng được xây dựng thành các dịch vụ nhỏ độc lập, có thể được triển khai và mở rộng riêng biệt. Mỗi dịch vụ trong kiến trúc microservices có thể được xây dựng, triển khai và quản lý độc lập. Các dịch vụ này có thể giao tiếp với nhau thông qua giao diện mạng như HTTP hoặc message queue.
+- Serverless: Serverless là một mô hình phát triển phần mềm trong đó các developer không cần quan tâm đến việc quản lý và triển khai máy chủ (server). Thay vào đó, các developer tập trung vào việc viết mã logic ứng dụng và chạy mã này trong môi trường được quản lý bởi nhà cung cấp dịch vụ đám mây. Các dịch vụ serverless thường được kích hoạt bởi các sự kiện (events) và chỉ thanh toán cho việc sử dụng tài nguyên tính toán khi cần thiết.
+
+SOA và Microservices nhấn mạnh việc phân chia ứng dụng thành các dịch vụ nhỏ hơn, trong khi Serverless tập trung vào việc triển khai ứng dụng mà không cần quản lý máy chủ. Monolithic là một kiến trúc truyền thống và không phân tách ứng dụng thành các dịch vụ riêng biệt.
+
+## API First
+
+Trong những năm gần đây "API First" đã nổi lên như 1 mô hình phát triển phần mềm phổ biến.
+Sơ đồ bên dưới so sánh các phương pháp tiếp cận "Code First" và "API First". Trong mô hình “Code First”, API là sản phẩm phụ của thiết kế hệ thống, thường được gọi là “documentation”. Mô hình "API First" bắt đầu với các đặc tả API và kết thúc bằng các thử nghiệm dựa trên API, khiến API trở thành động lực (kết quả) đằng sau toàn bộ chu trình phát triển phần mềm.
+![Quá trình phát triển kiến trúc APIs](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/affiliate/cource/Screen%20Shot%202023-06-17%20at%2010.12.02.png)
+
+### API First có một số đặc điểm nỗi trội như:
+
+- Cải thiện tích hợp hệ thống. “API First” khuyến khích các nhà phát triển xem xét cẩn thận các tương tác hệ thống ngay từ đầu của dự án, giảm nhu cầu sửa đổi liên tục trong quá trình phát triển.
+- Tăng cường hợp tác và chất lượng. API phục vụ như một đặc điểm kỹ thuật được chia sẻ trong tổ chức, cho phép các nhà phát triển, người thử nghiệm và DevOps làm việc độc lập. Đồng ý về API khi bắt đầu dự án giúp loại bỏ những điều không chắc chắn và nâng cao chất lượng phần mềm.
+- Tăng khả năng mở rộng. Với các giao diện được xác định cho từng dịch vụ, việc thay đổi quy mô trở nên dễ quản lý hơn bằng cách tạo ra các phiên bản mới và điều chỉnh cài đặt cân bằng tải.
