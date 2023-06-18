@@ -1,0 +1,97 @@
+---
+title: 'Những Snippet bạn nên sử dụng trong javascript'
+thumnail: 'https://fastly.picsum.photos/id/553/4288/2848.jpg?hmac=GFwL-rqthwP4zWlMpIz4JfwsyEKeXh2MTBhQoV7hPT8'
+date: 2023-06-18T12:32:14Z
+tags: ['tips']
+draft: false
+summary: 'Bài này mình sẽ giới thiệu tới các bạn một số snippet trong reactjs giúp các bạn code nhanh hơn'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+### 1. Generate 1 số bất kỳ từ 2 số min-max
+
+```javascript
+const randomNumber = Math.random() * (max - min) + min
+```
+
+### 2. Kiểm tra số nguyên
+
+```javascript
+const isInteger = (num) => num % 1 === 0
+```
+
+### 3. Kiểm tra null hoặc undefined
+
+```javascript
+const isNil = (value) => value === null || value === undefined
+```
+
+### 4. Kiểm tra truthy
+
+```javascript
+const isTruthy = (value) => !!value
+```
+
+### 5. Kiểm tra falsy
+
+```javascript
+const isFalsy = (value) => !value
+```
+
+### 6. Kiểm tra credit card:
+
+```javascript
+const isCreditCard = (cc) => {
+  const regex =
+    /(?:4[0-9]{12}(?:[0-9]{3})?|[25][1-7][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\d{3})\d{11})/
+  return regex.test(cc)
+}
+```
+
+### 7. Xoá các phần tử trùng lặp trong mãng
+
+```javascript
+const removeDuplicates = (arr) => [...new Set(arr)]
+```
+
+### 8. Kiểm tra email
+
+```javascript
+const isEmail = (email) => {
+  const regex =
+    /(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))/
+  return regex.test(email)
+}
+```
+
+### 9. Kiểm tra giá trị có phải ngày hay không
+
+```javascript
+const isDateString = (value) => !isNaN(Date.parse(value))
+```
+
+### 10. Debounce function
+
+```javascript
+const debounce = (fn, time) => {
+  let timeout
+  return function (...args) {
+    clearTimeout(timeout)
+    timeout = setTimeout(() => fn.apply(this, args), time)
+  }
+}
+```
+
+### 11. Lấy cookie
+
+```javascript
+const getCookie = (name) => {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop().split(';').shift()
+}
+```
