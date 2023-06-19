@@ -1,0 +1,142 @@
+---
+title: 'Cấu trúc thư mục Nestjs và testing với đường dẫn tuyệt đối'
+thumnail: 'https://fastly.picsum.photos/id/955/3872/2592.jpg?hmac=9Qkf5jGvEI5yx50cewZwqHpYnLlsAYq1vOfntqduFPo'
+date: 2023-06-19T12:32:14Z
+tags: ['nestjs']
+draft: false
+summary: 'Để dễ dàng quản lý và sử dụng các thành phần trong NestJs chúng ta cần phải có cấu trúc thư mục dễ sử dụng'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+Phần này mình sẽ giới thiệu đến các bạn cấu trúc thư mục trong NestJS được nhiều lập trình viên sử dụng và đánh giá cao, từ đó giúp các bạn quản lý các thành phần trong dự án trở nên rõ ràng và dễ sử dụng hơn.
+
+## Cấu trúc thư mục
+
+Tham khảo: https://github.com/NarHakobyan/awesome-nest-boilerplate/tree/main/src
+
+![Hình ảnh cấu trúc thư mục NestJS](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/affiliate/cource/Screen%20Shot%202023-06-19%20at%2021.35.43.png)
+
+### docs
+
+- Quy định cách đặt tên biến/ thư mục/...
+- Lưu trữ tên biến hoặc hướng dẫn cấu hình liên quan như databse,...
+
+### src
+
+- Nơi chứa các logic và thành phần api trong dự án
+
+![Cấu trúc file trong src](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/affiliate/cource/Screen%20Shot%202023-06-19%20at%2021.52.45.png)
+
+#### common
+
+- Lưu trữ các contants, utils, DTOs
+
+#### database
+
+- Chứa các cấu trúc dữ liệu, các migration của ứng dụng có thể là prisma, typeorm,...
+
+#### decorator
+
+- decorator là gì?
+  Là một tính năng quan trọng để thêm metadata (siêu dữ liệu) và chức năng cho các thành phần như class, property, method, parameter, v.v. Decorator giúp bạn dễ dàng mở rộng và tùy chỉnh hành vi của các thành phần này mà không cần sửa đổi trực tiếp mã nguồn gốc.
+
+Decorator trong NestJS thường được áp dụng bằng cách sử dụng các annotation (thông qua ký hiệu @) và được đặt trực tiếp trước các thành phần cần được thay đổi. Các decorator có thể được sử dụng để thực hiện các chức năng như xác thực, phân quyền, ghi log, gắn kết middleware, và nhiều chức năng khác.
+
+```javascript
+import { Controller, Get } from '@nestjs/common'
+
+@Controller('users')
+export class UsersController {
+  @Get()
+  getUsers() {
+    // Logic để lấy danh sách người dùng
+  }
+}
+```
+
+Trong đoạn mã trên, @Controller('users') là một decorator được áp dụng cho class UsersController. Decorator này định nghĩa rằng class UsersController là một controller xử lý các yêu cầu liên quan đến người dùng, và đường dẫn prefix của các route sẽ là /users.
+
+Decorators trong NestJS giúp cho việc tạo các module, controller, service và middleware trở nên dễ dàng và tổ chức hơn, đồng thời cung cấp khả năng mở rộng linh hoạt cho ứng dụng của bạn
+
+#### exceptions
+
+- Là nơi định nghĩa các dạng exception mà bạn muốn trả về
+
+* Định nghĩa exception không tìm thấy hình ảnh với status code là BadRequestException (400)
+
+```javascript
+import { BadRequestException } from '@nestjs/common'
+
+export class FileNotImageException extends BadRequestException {
+  constructor(error?: string) {
+    super('error.fileNotImage', error)
+  }
+}
+```
+
+- Định nghĩa exception không tìm thấy user với status code là NotFoundException (404)
+
+```javascript
+import { NotFoundException } from '@nestjs/common'
+
+export class UserNotFoundException extends NotFoundException {
+  constructor(error?: string) {
+    super('error.userNotFound', error)
+  }
+}
+```
+
+#### filters
+
+Tham khảo: https://docs.nestjs.com/exception-filters
+
+- Là một layer exception để filter request từ client phải thoả điều kiện trước khi request đến router
+
+#### guards
+
+- Chứa các files giúp kiểm tra quyền, định danh user
+
+#### i18n
+
+- Chứa các files ngôn ngữ
+
+#### interceptors
+
+- Là các services giúp xử lý và thay đổi các request (yêu cầu) và response (phản hồi) trước khi chúng được xử lý bởi route handler hoặc được gửi đến client.
+
+Interceptor cho phép bạn thực hiện các logic xử lý chung cho nhiều route hoặc chúng có thể được áp dụng cho một route cụ thể. Các tác vụ phổ biến mà interceptor có thể thực hiện bao gồm xác thực, ghi log, đo lường thời gian xử lý, xử lý lỗi, thêm thông tin vào response, v.v.
+
+Để tạo một interceptor trong NestJS, bạn có thể sử dụng @Injectable() decorator để khai báo nó là một Injectable provider và implement interface NestInterceptor từ package @nestjs/common. Sau đó, bạn có thể xử lý logic bên trong method intercept().
+
+```javascript
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common'
+import { Observable } from 'rxjs'
+
+@Injectable()
+export class LoggingInterceptor implements NestInterceptor {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    console.log('Before request...')
+    const now = Date.now()
+
+    return next
+      .handle()
+      .pipe(tap(() => console.log(`After request... Time: ${Date.now() - now}ms`)))
+  }
+}
+```
+
+#### modules
+
+- Chứa tất cả router, api
+
+#### providers
+
+- Là nơi cung cấp các functions để lấy các thông tin chung cho toàn ứng dụng
+
+### tests
+
+- lưu trữ tất cả các file test 2e2
