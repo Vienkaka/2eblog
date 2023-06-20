@@ -140,3 +140,36 @@ export class LoggingInterceptor implements NestInterceptor {
 ### tests
 
 - lưu trữ tất cả các file test 2e2
+
+## Testing với đường dẫn tuyệt đối
+
+Trong template trên, các file được import với đường dẫn tương đối. Sẽ gặp bất tiện khi các bạn thay đổi tên file hoặc hoặc di chuyển giữa các file. Để thuận tiện trong lúc code thì các bạn nên sử dụng đường dẫn tuyệt đối.
+![Đường dẫn tuyệt đối](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/affiliate/cource/Screen%20Shot%202023-06-20%20at%2008.48.56.png)
+
+Như trong hình trên thì controller User thực hiện import các decorator và guard từ src mà không cần `..`
+
+- tsconfig.json
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "..."
+  }
+}
+```
+
+- package.json
+
+```json
+{
+  "test:e2e": "jest --config --watch -no-cache ./src/test/jest-e2e.json",
+  "..."
+    "jest": {
+    "rootDir": "src",
+    "..."
+  }
+}
+```
+
+- Di chuyển folder testing vào bên trong folder src vì bây giờ thực hiện dòng test: `test:e2e` thì chỉ trong thư mục src mà thôi
