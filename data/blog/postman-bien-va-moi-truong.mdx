@@ -1,0 +1,70 @@
+---
+title: 'Postman | Biến và môi trường'
+thumnail: 'https://fastly.picsum.photos/id/428/2529/1581.jpg?hmac=FmX3-15B3BDpSiq3wq-eiTuAZ51CdKcJwrDeRICFCIU'
+date: 2023-06-22T12:32:14Z
+tags: ['postman']
+draft: false
+summary: 'Trong Postman có nhiều scopes khác nhau và các biến thuộc những scope sẽ có những quyền truy cập khác nhau, các biến và môi trường liên kết chặt chẽ với nhau.'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+Biến được khai báo trừu tượng trong Postman, thông qua `{{ten_bien}}` để truy cập các biến được khai báo. Postman tạo ra nhiều scope giúp ta tạo ra nhiều biến có cùng tên trong những scope khác nhau. Nhưng chúng ta chỉ cần quan tâm tới 2 scope chính là biến Global và biến môi trường
+
+## Scope
+
+- Global variables: cho phép bạn truy cập dữ liệu giữa các bộ sưu tập, yêu cầu, tập lệnh kiểm tra và môi trường. Các biến toàn cầu có sẵn trong một không gian làm việc. Vì các biến toàn cục có phạm vi rộng nhất sẵn có trong Postman nên chúng rất phù hợp để thử nghiệm và tạo mẫu. Trong các giai đoạn phát triển sau này, hãy sử dụng các phạm vi cụ thể hơn.
+- Collection variables: có sẵn trong suốt các yêu cầu trong một bộ sưu tập và độc lập với môi trường. Các biến bộ sưu tập không thay đổi dựa trên môi trường đã chọn. Các biến bộ sưu tập phù hợp nếu bạn đang sử dụng một môi trường duy nhất, chẳng hạn như đối với chi tiết xác thực hoặc URL.
+- Environment variables: cho phép bạn mở rộng phạm vi công việc của mình sang các môi trường khác nhau, ví dụ như phát triển cục bộ so với thử nghiệm hoặc sản xuất. Một môi trường có thể hoạt động tại một thời điểm. Nếu bạn có một môi trường duy nhất, việc sử dụng các biến bộ sưu tập có thể hiệu quả hơn, nhưng các môi trường cho phép bạn chỉ định các cấp độ truy cập dựa trên vai trò.
+- Data variables: đến từ các tệp CSV và JSON bên ngoài để xác định các tập dữ liệu mà bạn có thể sử dụng khi chạy các bộ sưu tập với Newman hoặc Trình chạy bộ sưu tập. Các biến dữ liệu có các giá trị hiện tại, không tồn tại ngoài các lần chạy yêu cầu hoặc bộ sưu tập.
+- Local variables: là các biến tạm thời được truy cập trong tập lệnh yêu cầu của bạn. Các giá trị biến cục bộ nằm trong phạm vi một lần chạy yêu cầu hoặc bộ sưu tập và không còn khả dụng khi quá trình chạy hoàn tất. Các biến cục bộ phù hợp nếu bạn cần một giá trị để ghi đè lên tất cả các phạm vi biến khác nhưng không muốn giá trị đó tồn tại sau khi quá trình thực thi kết thúc.
+  ![Khai báo biến](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v…ostman-variables-scope)
+
+## Biến
+
+### Các loại biến
+
+- Default: được tự động gán cho các biến. Loại này được hiển thị dưới dạng văn bản thuần túy và không có thuộc tính bổ sung.
+- Secret: che dấu các giá trị ban đầu và hiện tại cho tất cả các thành viên không gian làm việc và có thể được sử dụng để ngăn tiết lộ dữ liệu nhạy cảm ngoài ý muốn, bao gồm bí mật API, mật khẩu, mã thông báo và khóa.
+
+### Khai báo biến
+
+- Trên UI
+  ![Khai báo biến](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/post/postman-khai-bao-bien)
+  Để khai báo biến global thì chỉ cần add ten_bien: giá trị của biến, nhưng đối với biến môi trường khi nhấn Add thì Postman sẽ tạo 1 file chứa tên của File môi trường với các biến trong file đó, trong trường hợp trên là file Dự án A.
+- Thông qua script
+
+```javascript
+// Use to define a global variable.
+pm.globals.set('variable_key', 'variable_value')
+// Use to define a collection variable.
+pm.collectionVariables.set('variable_key', 'variable_value')
+// Use to define an environment variable in the currently selected environment.
+pm.environment.set('variable_key', 'variable_value')
+// Use to define a local variable.
+pm.variables.set('variable_key', 'variable_value')
+// You can use unset to remove a variable.
+pm.environment.unset('variable_key')
+```
+
+### Sử dụng biến
+
+- Trên UI
+  ![Lay bien](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/post/postman-lay-gia-tri-bien)
+  Sử dụng `{{ten_bien}}` để lấy biến môi trường. Postman sẽ show giá trị của biến khi trỏ chuột vào biến đó, nếu biến không có giá trị thì màu của biến sẽ có màu đỏ
+
+- Thông qua script
+
+```javascript
+//access a variable at any scope including local
+pm.variables.get('variable_key')
+//access a global variable
+pm.globals.get('variable_key')
+//access a collection variable
+pm.collectionVariables.get('variable_key')
+//access an environment variable
+pm.environment.get('variable_key')
+```
