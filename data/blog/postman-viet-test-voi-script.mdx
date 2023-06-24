@@ -1,0 +1,230 @@
+---
+title: 'Postman | Testing với script trong postman'
+thumnail: 'https://fastly.picsum.photos/id/688/4608/3072.jpg?hmac=qIpK7qUXym0mfdFosdvte_Ia2COVGw9-WjBicJ3eSHg'
+date: 2023-06-23T12:32:14Z
+tags: ['postman']
+draft: false
+summary: 'Sử dụng script trong Postman cung cấp cho bạn khả năng tùy chỉnh và tự động hóa quy trình kiểm thử và xử lý dữ liệu'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+## Công dụng
+
+Dưới đây là một số cách mà việc sử dụng script trong Postman có thể hữu ích:
+
+- Kiểm tra tự động: Bạn có thể viết các đoạn mã để kiểm tra tự động kết quả trả về từ một yêu cầu HTTP. Điều này giúp đảm bảo rằng các yêu cầu đang hoạt động chính xác và trả về kết quả mong đợi.
+
+- Xử lý dữ liệu động: Bạn có thể sử dụng script để xử lý dữ liệu động trong yêu cầu và phản hồi. Ví dụ, bạn có thể tạo ra các giá trị ngẫu nhiên, tạo chuỗi ký tự băm (hash), định dạng dữ liệu, trích xuất giá trị từ phản hồi để sử dụng trong yêu cầu tiếp theo, và nhiều hơn nữa.
+
+- Điều kiện kiểm thử: Bạn có thể sử dụng script để kiểm tra các điều kiện và thực hiện các hành động tương ứng. Ví dụ, bạn có thể kiểm tra các trường hợp cụ thể, kiểm tra điều kiện phức tạp, chuyển đổi dữ liệu dựa trên kết quả kiểm tra, và nhiều hơn nữa.
+
+- Tích hợp với hệ thống khác: Bạn có thể sử dụng script để tích hợp với các hệ thống khác nhau. Ví dụ, bạn có thể gửi yêu cầu HTTP đến API khác, gửi email thông báo, ghi log dữ liệu, hoặc thực hiện các hành động tương tác với hệ thống ngoại vi.
+
+## Bắt đầu viết script
+
+![Testing trong postman](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/post/postman-script?t=2023-06-24T10%3A58%3A02.546Z)
+
+1. Trước khi request gởi lên server ở tab pre-script
+2. Sau khi response trả về client ở tab test
+
+### Kiểm tra phản hồi của response
+
+```javascript
+tests['Request resulted in 200 OK'] = responseCode.code === 200
+```
+
+### Kiểm tra độ trễ cho phép của 1 request
+
+```javascript
+tests['Response latency is acceptable'] = responseTime < 1000
+// responseTime được tính bằng milliseconds
+```
+
+### Kiểm tra môi trường
+
+```javascript
+pm.test('Check the active environment', () => {
+  pm.expect(pm.environment.name).to.eql('Production')
+})
+```
+
+### Kiểm tra status trả về
+
+```javascript
+pm.test('Status code is 200', function () {
+  pm.response.to.have.status(200)
+})
+```
+
+### Kiểm tra mã code response trong các mã code cho phép
+
+```javascript
+pm.test('Successful POST request', () => {
+  pm.expect(pm.response.code).to.be.oneOf([201, 202])
+})
+```
+
+### Sử dụng nhiều phương thức kiểm tra. Nếu 1 trong số các phương thức fail thì kiểm thử sẽ fail
+
+```javascript
+pm.test('The response has all properties', () => {
+  //parse the response JSON and test three properties
+  const responseJson = pm.response.json()
+  pm.expect(responseJson.type).to.eql('vip')
+  pm.expect(responseJson.name).to.be.a('string')
+  pm.expect(responseJson.id).to.have.lengthOf(1)
+})
+```
+
+### Để chuyển response thành json
+
+```javascript
+const responseJson = pm.response.json()
+```
+
+hoặc XML
+
+```javascript
+const responseJson = xml2Json(pm.response.text())
+```
+
+### Xử lý response mà không cần chuyển đổi dữ liệu
+
+```javascript
+pm.test('Body contains string', () => {
+  pm.expect(pm.response.text()).to.include('customer_id')
+})
+```
+
+### Kiểm tra response có trong body hay không( dùng cho những body ngắn, ít dữ liệu )
+
+```javascript
+pm.test('Body is string', function () {
+  pm.response.to.have.body('whole-body-text')
+})
+```
+
+### Kiểm tra giá trị
+
+```javascript
+pm.test('Person is Jane', () => {
+  const responseJson = pm.response.json()
+  pm.expect(responseJson.name).to.eql('Jane')
+  pm.expect(responseJson.age).to.eql(23)
+})
+```
+
+### Test key cookies
+
+```javascript
+pm.test('Cookie JSESSIONID is present', () => {
+  pm.expect(pm.cookies.has('JSESSIONID')).to.be.true
+})
+```
+
+### Test value trong cookies
+
+```javascript
+pm.test('Cookie isLoggedIn has value 1', () => {
+  pm.expect(pm.cookies.get('isLoggedIn')).to.eql('1')
+})
+```
+
+### Kiểm tra giá trị response có match với giá trị trong environment
+
+```javascript
+pm.test('Response property matches environment variable', function () {
+  pm.expect(pm.response.json().name).to.eql(pm.environment.get('name'))
+})
+```
+
+### Kiểm tra kiểu dữ liệu của response
+
+```javascript
+/* response has this structure:
+{
+  "name": "Jane",
+  "age": 29,
+  "hobbies": [
+    "skating",
+    "painting"
+  ],
+  "email": null
+}
+*/
+const jsonData = pm.response.json()
+pm.test('Test data type of the response', () => {
+  pm.expect(jsonData).to.be.an('object')
+  pm.expect(jsonData.name).to.be.a('string')
+  pm.expect(jsonData.age).to.be.a('number')
+  pm.expect(jsonData.hobbies).to.be.an('array')
+  pm.expect(jsonData.website).to.be.undefined
+  pm.expect(jsonData.email).to.be.null
+})
+```
+
+### Gởi 1 request
+
+```javascript
+pm.sendRequest('https://postman-echo.com/get', function (err, response) {
+  console.log(response.json())
+})
+```
+
+### Vòng lặp các request
+
+```javascript
+postman.setNextRequest('request_name')
+```
+
+```javascript
+const usernames = pm.collectionVariables.get('usernames')
+
+if (usernames && usernames.length > 0) {
+  postman.setNextRequest('Loop Query Parameter')
+} else {
+  postman.setNextRequest(null)
+}
+
+pm.test('Status code is 200', function () {
+  pm.response.to.have.status(200)
+})
+```
+
+### Định nghĩa biến môi trường
+
+```javascript
+//set an environment variable
+postman.setEnvironmentVariable('key', 'value')
+```
+
+### Sét biến môi trường lồng nhau
+
+```javascript
+//set a nested object as an environment variable
+const array = [1, 2, 3, 4]
+postman.setEnvironmentVariable('array', JSON.stringify(array, null, 2))
+const obj = { a: [1, 2, 3, 4], b: { c: 'val' } }
+postman.setEnvironmentVariable('obj', JSON.stringify(obj))
+```
+
+### Lấy giá trị của biến môi trường
+
+```javascript
+//get an environment variable
+postman.getEnvironmentVariable('key')
+
+const array = JSON.parse(postman.getEnvironmentVariable('array'))
+const obj = JSON.parse(postman.getEnvironmentVariable('obj'))
+```
+
+### Xoá biến môi trường
+
+```javascript
+//clear an environment variable
+postman.clearEnvironmentVariable('key')
+```
