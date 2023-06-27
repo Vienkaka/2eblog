@@ -1,0 +1,230 @@
+---
+title: 'Làm thế nào để chạy Docker compose với Strapi'
+thumnail: 'https://fastly.picsum.photos/id/25/5000/3333.jpg?hmac=yCz9LeSs-i72Ru0YvvpsoECnCTxZjzGde805gWrAHkM'
+date: 2023-06-27T12:32:14Z
+tags: ['postman']
+draft: false
+summary: 'Đến 1 ngày ứng dụng của bạn cần phải mở rộng và cần xuất hiện trên nhiều thiết và chứa nhiều services khác nhau. Vậy thì hãy ngồi xuống làm một ly cafe và đưa chúng lên Docker compose thôi'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+## Docker compose là gì?
+
+Để hiểu được Docker compose là gì thì bạn cần phải tìm hiểu Docker, container,... trước. Trong phần này mình sẽ tập trung vào Compose.
+Compose là 1 công cụ giúp định nghĩa, chạy các container, với việc setup qua file YAML để cài đặt các services trong ứng dụng của bạn thì bạn chỉ cần chạy 1 dòng lệnh và có thể tạo và chạy các services.
+Với 1 dòng lệnh thì các bạn đã có thể chạy ứng dụng có Strapi và MongoDB một cách mượt mà mà không cần tải chúng về bằng tay. Và bắt đầu thôi
+
+## Mục tiêu
+
+- Strapi có các tài liệu giúp tải Strapi với Docker rất rõ ràng
+
+Đây là toàn bộ setup trong project: https://github.com/demystifying-dev/strapi-docker-compose-example. Bạn clone về và run `docker-compose up -d`, tất nhiên yêu cầu trong máy của bạn phải có sẳng Docker và Docker compose
+
+## Bước 1: Tạo file docker-compose.yml
+
+- Tạo file `.env`
+
+```YAML
+DATABASE_CLIENT=mongo
+DATABASE_NAME=strapi
+DATABASE_HOST=mongoexample
+DATABASE_PORT=27017
+DATABASE_USERNAME=strapi
+DATABASE_PASSWORD=password
+MONGO_INITDB_ROOT_USERNAME=strapi
+MONGO_INITDB_ROOT_PASSWORD=password
+```
+
+- Tạo file docker-compose.yml
+
+```YAML
+version: "3"
+
+services:
+  strapiexample:
+    image: strapi/strapi
+    container_name: strapiexample
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_CLIENT: ${DATABASE_CLIENT}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+    #    links:
+    #      - mongo:mongo
+    networks:
+      - strapi-app-network
+    volumes:
+      - ./app:/srv/app
+    ports:
+      - "1337:1337"
+
+  mongoexample:
+    image: mongo
+    container_name: mongoexample
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    networks:
+      - strapi-app-network
+    volumes:
+      - strapidata:/data/db
+    ports:
+      - "27017:27017"
+
+networks:
+  strapi-app-network:
+    driver: bridge
+
+volumes:
+  strapidata:
+```
+
+### Giải thích
+
+- Có 2 services: strapiexample và mongoexample
+- Trong ví dụ trên thì có khai báo dòng container_name để đặt tên cho container, nếu không khai báo thì tên của container sẽ là tên của image
+- restart: unless-stopped nghĩa là khởi động lại container trừ khi nó bị dừng bởi dòng lệnh
+- env_file: .env để chứa các bién nhạy cảm, không nên để trong repo
+- volumes: để chia sẻ dữ liệu giữa thiết bị và container trong docker, khi xoá container thì dữ liệu không bị mất
+
+## Pull images từ Docker hub
+
+```Bash
+% docker-compose pull
+Pulling strapiexample ... done
+Pulling mongoexample  ... done
+```
+
+## Run docker-compose
+
+```Bash
+% docker-compose up -d
+Creating network "strapi-docker-composer-example_strapi-app-network" with driver "bridge"
+Creating volume "strapi-docker-composer-example_strapidata" with default driver
+Creating strapiexample ... done
+Creating mongoexample  ... done
+```
+
+```Bash
+% docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED              STATUS              PORTS                      NAMES
+7dfdb8c300ed        mongo               "docker-entrypoint.s…"   About a minute ago   Up About a minute   0.0.0.0:27017->27017/tcp   mongoexample
+c56195eeddf2        strapi/strapi       "docker-entrypoint.s…"   About a minute ago   Up 39 seconds       0.0.0.0:1337->1337/tcp     strapiexample
+```
+
+- Truy cập vào browser: http://localhost:1337/admin
+
+### Kiểm tra Strapi log những gì
+
+```Bash
+% docker-compose logs --tail=all -f | grep strapiexample
+
+Attaching to mongoexample, strapiexample
+strapiexample    | Using strapi 3.0.0-beta.19.5
+strapiexample    | No project found at /srv/app. Creating a new strapi project
+strapiexample    | Creating a new Strapi application at /srv/app.
+strapiexample    |
+strapiexample    | Creating a project from the database CLI arguments.
+strapiexample    | Creating files.
+strapiexample    | - Installing dependencies:
+strapiexample    | Dependencies installed successfully.
+strapiexample    |
+strapiexample    | Your application was created at /srv/app.
+strapiexample    |
+strapiexample    | Available commands in your project:
+strapiexample    |
+strapiexample    |   yarn develop
+strapiexample    |   Start Strapi in watch mode.
+strapiexample    |
+strapiexample    |   yarn start
+strapiexample    |   Start Strapi without watch mode.
+strapiexample    |
+strapiexample    |   yarn build
+strapiexample    |   Build Strapi admin panel.
+strapiexample    |
+strapiexample    |   yarn strapi
+strapiexample    |   Display all available commands.
+strapiexample    |
+strapiexample    | You can start by doing:
+strapiexample    |
+strapiexample    |   cd /srv/app
+strapiexample    |   yarn develop
+strapiexample    |
+strapiexample    | Starting your app...
+strapiexample    | Building your admin UI with development configuration ...
+strapiexample    | ℹ Compiling Webpack
+strapiexample    | ✔ Webpack: Compiled successfully in 1.18m
+strapiexample    |
+strapiexample    |  Project information
+strapiexample    |
+strapiexample    | ┌────────────────────┬──────────────────────────────────────────────────┐
+strapiexample    | │ Time               │ Mon Apr 06 2020 21:57:54 GMT+0000 (Coordinated … │
+strapiexample    | │ Launched in        │ 10378 ms                                         │
+strapiexample    | │ Environment        │ development                                      │
+strapiexample    | │ Process PID        │ 97                                               │
+strapiexample    | │ Version            │ 3.0.0-beta.19.5 (node v12.13.0)                  │
+strapiexample    | └────────────────────┴──────────────────────────────────────────────────┘
+strapiexample    |
+strapiexample    |  Actions available
+strapiexample    |
+strapiexample    | One more thing...
+strapiexample    | Create your first administrator 💻 by going to the administration panel at:
+strapiexample    |
+strapiexample    | ┌─────────────────────────────┐
+strapiexample    | │ http://localhost:1337/admin │
+strapiexample    | └─────────────────────────────┘
+strapiexample    |
+strapiexample    | [2020-04-06T21:57:54.706Z] debug HEAD /admin (30 ms) 200
+strapiexample    | [2020-04-06T21:57:54.726Z] info ⏳ Opening the admin panel...
+strapiexample    | [2020-04-06T21:57:54.748Z] info File created: /srv/app/extensions/users-permissions/config/jwt.json
+strapiexample    | [2020-04-06T21:58:08.248Z] debug GET /admin (21 ms) 200
+strapiexample    | [2020-04-06T21:58:08.545Z] debug GET runtime~main.94ab5055.js (171 ms) 200
+strapiexample    | [2020-04-06T21:58:08.552Z] debug GET main.e9e3876e.chunk.js (115 ms) 200
+strapiexample    | [2020-04-06T21:58:09.712Z] debug GET /favicon.ico (4 ms) 200
+strapiexample    | [2020-04-06T21:58:10.504Z] debug GET /users-permissions/init (38 ms) 401
+strapiexample    | [2020-04-06T21:58:10.620Z] debug GET /users/me (35 ms) 401
+strapiexample    | [2020-04-06T21:58:10.668Z] debug GET login (31 ms) 200
+strapiexample    | [2020-04-06T21:58:12.277Z] debug GET /users-permissions/init (58 ms) 200
+strapiexample    | [2020-04-06T21:58:12.471Z] debug GET /admin/init (33 ms) 200
+strapiexample    | [2020-04-06T21:58:12.708Z] debug GET 2ff0049a00e47b56bffc059daf9be78b.png (92 ms) 200
+strapiexample    | [2020-04-06T21:58:12.711Z] debug GET 6301a48360d263198461152504dcd42b.svg (26 ms) 200
+strapiexample    | [2020-04-06T21:58:12.738Z] debug GET cccb897485813c7c256901dbca54ecf2.woff2 (24 ms) 200
+strapiexample    | [2020-04-06T21:58:13.135Z] debug GET bd03a2cc277bbbc338d464e679fe9942.woff2 (391 ms) 200
+strapiexample    | [2020-04-06T21:58:13.189Z] debug GET 8b4f872c5de19974857328d06d3fe48f.woff2 (39 ms) 200
+strapiexample    | [2020-04-06T21:58:13.249Z] debug GET 33d5f0d956f3fc30bc51f81047a2c47d.woff2 (58 ms) 200
+strapiexample    | [2020-04-06T21:58:13.263Z] debug GET b15db15f746f29ffa02638cb455b8ec0.woff2 (52 ms) 200
+strapiexample    | [2020-04-06T21:58:13.366Z] debug GET 6301a48360d263198461152504dcd42b.svg (101 ms) 200
+```
+
+### Xem Strapi tạo ra những gì
+
+```SQL
+% docker exec -it mongoexample /bin/bash
+root@7afecba98c09:/# mongo strapi -u strapi -p --authenticationDatabase admin
+MongoDB shell version v4.2.5
+Enter password:
+connecting to: mongodb://127.0.0.1:27017/strapi?authSource=admin&compressors=disabled&gssapiServiceName=mongodb
+
+> show collections
+articles
+core_store
+strapi_administrator
+strapi_webhooks
+upload_file
+users-permissions_permission
+users-permissions_role
+users-permissions_user
+> db.articles.find()
+{ "_id" : ObjectId("5e8b3b26845382009a59ffa7"), "title" : "First article", "body" : "## Oh yes\n\nA first article!", "published" : "2020-04-07", "createdAt" : ISODate("2020-04-06T14:22:30.063Z"), "updatedAt" : ISODate("2020-04-06T14:22:30.063Z"), "__v" : 0 }
+>
+```
