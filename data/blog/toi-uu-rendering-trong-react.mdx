@@ -28,7 +28,7 @@ Vì khi component bị re-render sẽ làm giảm hiệu năng của ứng dụn
 - PureComponent là lớp lắng nghe props và state, khi props hoặc state thay đổi thì nó sẽ gọi tới shouldComponentUpdate
 - memo là higher-order component, nó sẽ bao bọc component. và có chứ năng tương tự PureComponent
 
-## Memoization
+## Memorization
 
 - Khi props hoặc state là 1 khối dữ liệu nặng thì việc re-render trong reactjs thật tồi tệ. Cần phải có những phương thức giúp ghi nhớ lại giá trị của props hoặc state từ đó hạn chế re-rendering. Trong react có cung cấp 2 hooks giúp ghi nhớ dữ liệu, tối ưu toá re-render tạo ứng dụng mượt mà hơn
 - useMemo là 1 hook ghi nhớ biến

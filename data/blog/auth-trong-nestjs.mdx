@@ -1,0 +1,259 @@
+---
+title: 'Auth trong NestJS'
+thumnail: 'https://fastly.picsum.photos/id/59/2464/1632.jpg?hmac=uTfe6jCzLvCzANvJgtpo-a0fKhO8BvjpwLNYX3lqx_Q'
+date: 2023-06-29T12:32:14Z
+tags: ['nestjs']
+draft: false
+summary: 'Hôm nay mình sẽ giới thiệu các bạn service Auth giúp server của chúng ta có thể nhận biết được thông tin của client. Bạn là ai? Chức vụ của bạn là gì? Bạn có thể làm được gì trong hệ thống của tôi?'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+Cách setup 1 project NestJs các bạn tham khảo tại đây nhá: https://docs.nestjs.com/
+
+Mình sẽ cùng đi thẳng vào cách setup Auth
+
+## Khởi tạo module
+
+Các bạn generate ra `auth` module
+
+- Install nest-cli: `npm install -g @nestjs/cli`
+- Tạo module auth:
+
+```BASH
+nest g module auth --no-spec
+nest g controller auth --no-spec
+nest g service auth --no-spec
+```
+
+```Typescript
+@Module({
+  providers: [AuthService, JwtStrategy, PrismaService],
+  controllers: [AuthController],
+  imports: [JwtModule.register({})],
+})
+export class AuthModule {}
+```
+
+- Project này mình sẽ sử dụng PostgresQL làm dữ liệu và Prisma để tạo schema, truy vấn giúp tương tác dữ liệu:
+
+```BASH
+npm i prisma
+npm i -D @prisma/client
+```
+
+- Connect prisma tới database
+
+```Typescript
+import { Injectable } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+
+@Injectable()
+export class PrismaService extends PrismaClient {
+  // connect tới database
+  constructor() {
+    super({
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL,
+        },
+      },
+    });
+  }
+}
+```
+
+## Tạo schema cho User
+
+- Generate prisma: `npx prisma generate`
+- Trong file prisma > schema.prisma
+
+```Scala
+model User {
+  id             Int      @id @default(autoincrement())
+  name           String?
+  email          String   @unique
+  hashedPassword String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  //relationship
+  notes Note[]
+
+  @@map("user") // đây là tên bảng trong database
+}
+
+```
+
+- Migrate: `npx prisma migrate dev` => các bạn vào sql để xem prisma sinh ra những gì nhá.
+
+## Xác thực request
+
+- Install passport để xác thực được request
+
+```BASH
+npm i @nestjs/jwt passport-jwt @nestjs/passport passport
+npm i -D @types/passport-jwt
+```
+
+- Trong folder auth > strategy tạo 1 file jwt.strategy.ts
+
+```TYPESCRIPT
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { Strategy, ExtractJwt } from 'passport-jwt';
+import { PrismaService } from 'src/prisma/prisma.service';
+
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+  // Khi khởi tạo 1 request thì cần phải gán jwt vào header
+  constructor(private prismaService: PrismaService) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      secretOrKey: process.env.JWT_SECRET,
+    });
+  }
+  async validate(payload: { sub: number; email: string; iat: number; exp: number }) {
+    const user = await this.prismaService.user.findUnique({ where: { id: payload.sub } });
+
+    delete user.hashedPassword;
+
+    return user;
+  }
+}
+```
+
+Thông qua validate của PassportStrategy thì có thể lấy được thông tin User
+
+## AuthDTO
+
+```TYPESCRIPT
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+
+export class AuthDTO {
+  @IsEmail({}, { message: 'ERROR_EMAIL_FORMAT' })
+  @IsNotEmpty({ message: 'EMAIL_NOT_EMPTY' })
+  email: string;
+
+  @IsString({ message: 'PASSWORD_IS_STRING' })
+  @IsNotEmpty({ message: 'PASSWORD_NOT_EMPTY' })
+  password: string;
+}
+```
+
+## Auth service
+
+```TYPESCRIPT
+import { ForbiddenException, HttpStatus, Injectable } from '@nestjs/common';
+import { AuthDTO } from './dto';
+import * as argon2 from 'argon2';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
+import { SuccessResponse } from 'src/@types/SuccessResponse';
+import { ERROR_MESSAGE } from 'src/@types/ErrorTypes';
+
+@Injectable()
+export class AuthService {
+  constructor(private primaService: PrismaService, private jwtService: JwtService) {}
+
+  async register(authDTO: AuthDTO) {
+    //hass password
+    const hashedPassword = await argon2.hash(authDTO.password);
+
+    try {
+      // thêm vào dữ liệu
+      const user = await this.primaService.user.create({
+        data: {
+          email: authDTO.email,
+          hashedPassword,
+        },
+        // setup show các trường được hiển thị & response
+        select: {
+          id: true,
+          email: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      const res: SuccessResponse = {
+        success: true,
+        data: user,
+        statusCode: HttpStatus.CREATED,
+      };
+      return res;
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw new ForbiddenException({
+          statusCode: 403,
+          message: ERROR_MESSAGE.EMAIL_ALREADY_EXISTS,
+        });
+      }
+    }
+  }
+
+  //LOGIN
+  async login(authDTO: AuthDTO) {
+    // tìm user
+    const user = await this.primaService.user.findUnique({
+      where: {
+        email: authDTO.email,
+      },
+    });
+
+    if (!user) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        message: ERROR_MESSAGE.EMAIL_DOES_NOT_EXIST,
+      });
+    }
+    const passwordMatched = await argon2.verify(user.hashedPassword, authDTO.password);
+    if (!passwordMatched) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        message: ERROR_MESSAGE.PASSWORD_IS_NOT_CORRECT,
+      });
+    }
+
+    delete user.hashedPassword;
+
+    const res: SuccessResponse = {
+      success: true,
+      statusCode: HttpStatus.OK,
+      data: {
+        accessToken: await this.convertToJwtString(user.id, user.email),
+      },
+    };
+
+    return res;
+  }
+
+  async convertToJwtString(userId: number, email: string): Promise<string> {
+    const payload = {
+      sub: userId,
+      email,
+    };
+    return this.jwtService.signAsync(payload, {
+      expiresIn: '10m',
+      secret: process.env.JWT_SECRET,
+    });
+  }
+}
+```
+
+- Thêm Service vào AppModule
+
+```TYPESCRIPT
+@Module({
+  imports: [UserModule, NoteModule, AuthModule, PrismaModule],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(PaginationMiddleware).forRoutes({ method: 0, path: '*' });
+  }
+}
+```
