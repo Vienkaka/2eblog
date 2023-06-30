@@ -1,0 +1,202 @@
+---
+title: 'Giảm thời gian build của React với CICD'
+thumnail: 'https://fastly.picsum.photos/id/977/3888/2592.jpg?hmac=ZEAKAfoNUWYe4j2FGXakpkaUuYOQRfse-Wxueq6ef9k'
+date: 2023-06-30T12:32:14Z
+tags: ['Reactjs']
+draft: false
+summary: 'CICD là một phương pháp trong quy trình phát triển phần mềm để tự động hóa việc kiểm tra, xây dựng và triển khai ứng dụng, giúp bạn xây dựng và triển khai ứng dụng một cách liên tục và tự động.'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+Trong bài này mình sẽ cùng tìm hiểu CICD trong gitlab để buil ứng dụng React. Không chỉ sử dụng CICD để build/ deploy mà còn sử dụng các phương pháp để giảm thời gian build giúp cho ứng dụng nhanh chóng đến với người dùng đồng thời giúp ta tối ưu thời gian phát triển phần mềm.
+
+Đối với tôi, một trong những lý do chính để sử dụng Gitlab là tính năng CICD, mặc dù bên Github vẫn có Github Action nhưng với sự đi trước thì Gitlab đã sự ổn định và tài liệu chuẩn chỉnh cho việc setup và sử dụng.
+
+## Gitlab CICD
+
+- Dockerfile
+
+```YAML
+# Set the base image to node:14-alpine
+FROM node:14-alpine as build
+
+# Specify where our app will live in the container
+WORKDIR /app
+COPY package.json ./
+COPY yarn.lock ./
+COPY . /app/
+
+RUN yarn install
+
+RUN yarn build
+
+# Fire up nginx
+EXPOSE 80
+EXPOSE 443
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+- docker-compose.yml
+
+```YAML
+version: '3.7'
+services:
+  nginx:
+    build:
+      context: .
+    image: "${NGINX_IMAGE}"
+    ports:
+      - '80:80'
+      - '443:443'
+```
+
+- .gitlab-ci.yml
+
+```YAML
+build_k8s_dev:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - apk update && apk add --no-cache bash
+  script:
+    # Make env file
+    - chmod +x ./dev/setup_env.sh
+    - bash ./dev/setup_env.sh
+    # Export image tags
+    - export IMAGE=$CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME_$CI_COMMIT_SHA:latest
+    # Build image
+    - docker build --no-cache -f ./dev/Dockerfile -t $IMAGE .
+
+    # Login to Docker Hub
+    - docker login -u=$CI_REGISTRY_USER -p=$CI_JOB_TOKEN $CI_REGISTRY
+    # Push image to Docker Hub Registry
+    - docker image push $IMAGE
+  only:
+    - dev
+
+deploy_k8s_dev:
+  image: alpine:latest
+  stage: deploy
+  before_script:
+    - echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
+    - apk update && apk add --no-cache kubectl
+  script:
+    # Install doctl
+    - wget https://github.com/digitalocean/doctl/releases/download/v1.91.0/doctl-1.91.0-linux-amd64.tar.gz
+    - tar xf doctl-1.91.0-linux-amd64.tar.gz
+    - mv doctl /usr/local/bin
+    # Auth doctl
+    - doctl auth init -t $ACCESS_TOKEN_DEV
+    # Update deployment file
+    - export IMAGE=$CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME_$CI_COMMIT_SHA:latest
+    - sed -i "s+<IMAGE>+${IMAGE}+" ./dev/server/app.yml
+    # Save DigitalOcean kubeconfig with short-lived credentials
+    - doctl kubernetes cluster kubeconfig save --expiry-seconds 600 $K8S_CLUSTER_NAME_DEV
+    # Deploy to DigitalOcean Kubernetes
+    - kubectl apply -f ./dev/server/app.yml
+  only:
+    - dev
+  needs:
+    - build
+```
+
+### Jobs
+
+- Là nơi định nghĩa các Stages, các actions để thực thi
+- Mỗi Job sẽ thực thi nhiệm vụ khác nhau
+
+Với mỗi Job có thể thực hiện các công việc sau:
+
+- Huỷ job
+- Retry lại job nếu bị fail
+- Run job nếu nó thành công
+- Xoá log job
+
+Các bạn có thể tìm hiểu thêm tại đây: https://docs.gitlab.com/ee/ci/jobs/
+
+### Stages
+
+Trong Gitlab CICD các stages định nghĩa từng giai đoạn trong nó, các job có cùng state sẽ được chạy song song.
+
+Stages trong GitLab CI/CD cho phép bạn tổ chức và kiểm soát quy trình CI/CD một cách có cấu trúc và linh hoạt. Bằng cách sắp xếp công việc vào các giai đoạn phù hợp, bạn có thể xử lý các tác vụ theo đúng thứ tự và tăng hiệu suất trong quy trình CI/CD của mình
+
+Như cách setup ở trên thì CICD trong Gitlab sẽ chạy mỗi lần commit từ nhánh dev và thực hiện các bước sau
+
+- pull image node
+- copy tất cả code của project vào folder app của container
+- install package từ dependencies
+- build project và nhét vào trong nginx
+- push image lên registry của gitlab (phần này mình sẽ nói sau nhá)
+- lên docker trên server pull image về rồi run lên
+
+Xong :))
+
+Nhưng mà khoan, mình có thể tối ưu được khúc nào trong các bước trên không vậy.
+Đoạn này nè: `install package từ dependencies`. Mỗi lần commit từ dev là mỗi lần phải đi pull package, quá chi là cực. Thay vào đó mình có thể cache package trên gitlab rồi khi nào cần dùng thì copy qua project và sử dụng thôi.
+Câu hỏi đặt ra là khi nào thì refresh package được cache trên gitlab, cùng setup nhá. (Có 1 bí mật ở đây)
+
+## Cache package
+
+- Ẩn dòng lệnn `yarn install` đi nhá
+- Install trong job của gitlab luôn nè
+
+```YAML
+yarn_install:
+  stage: .pre
+  image: node:14-alpine
+  script:
+    - apk add --no-cache yarn
+    - yarn install
+  cache:
+    key: $CI_COMMIT_REF_SLUG-$CI_PROJECT_DIR
+    paths:
+      - node_modules/
+    policy: push
+  only:
+    refs:
+      - dev
+    # Khi những files dưới thay đổi thì refresh cache package trên gitlab nhá
+    changes:
+      - package.json
+      - .gitlab-ci.yml
+      - yarn.lock
+
+build:
+  stage: build
+# Phải đợi yarn_install chạy xong thì job này mới chạy nhá
+# Nếu job yarn_install không chạy thì nó chạy luôn
+  dependencies:
+    - yarn_install
+  cache:
+    key: $CI_COMMIT_REF_SLUG-$CI_PROJECT_DIR
+    paths:
+      - node_modules/
+    policy: pull
+  script:
+    - export IMAGE=$CI_REGISTRY/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME/$CI_COMMIT_SHA
+    - export NGINX_IMAGE=$IMAGE:nginx
+    - chmod +x ./setup_env.sh
+    - bash ./setup_env.sh
+    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
+    - echo "------------------Setup done---------------------"
+    - docker-compose -f docker-compose.ci.yml build
+    - docker push $IMAGE:nginx
+  only:
+    - dev
+```
+
+Các bước CICD sẽ được update lại là:
+
+- ở job install: install package về rồi cache trên gitlab bằng thư mục node_modules
+- ở job build: down node_modules về
+- chạy các bước trong docker
+
+Như vậy thì đã tiết kiệm khối thời gian để CICD 1 project React lên server rồi nhá
+
+BẬT MÍ: Thời gian install package = thời gian copy node_modules từ cache vào container
