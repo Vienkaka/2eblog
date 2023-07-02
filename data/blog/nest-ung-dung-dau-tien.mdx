@@ -1,0 +1,206 @@
+---
+title: '02.Nest | Ứng dụng đầu tiên'
+thumnail: 'https://fastly.picsum.photos/id/19/2500/1667.jpg?hmac=7epGozH4QjToGaBf_xb2HbFTXoV5o8n_cYzB7I4lt6g'
+date: 2023-07-02T12:32:14Z
+tags: ['nestjs']
+draft: false
+summary: 'Sau khi tìm hiểu về cấu trúc thư mục NestJs thì chúng ta cùng đi vào tạo 1 ứng dụng để biết được luồng chạy của request và cách server sử lý request'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+**Xây dựng ứng dụng quản lý những chú mèo - Cat**
+
+Như đã giới thiệu từ trước, thì cấu trúc thư mục tương tự như mình đã giới thiệu: https://2eplusblog.vercel.app/blog/cau-truc-thu-muc-nestjs-va-testing-voi-duong-dan-tuyet-doi
+
+Sẽ có những thay đổi tuỳ thuộc vào ứng dụng như phần chung thì thiết kế vẫn như vậy.
+
+![NestJs cấu trúc thư mục](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/post/nestjs-ung-dung-dau-tien)
+
+### main.ts
+
+- Tạo dựng các module của ứng dụng thông qua NestFactory.create()
+- Để tất cả endpoint của ứng dụng nhận đúng dữ liệu sử dụng ValidationPipe()
+
+```TYPESCRIPT
+import { ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  app.useGlobalPipes(new ValidationPipe());
+
+  await app.listen(3000);
+  console.log(`Application is running on: ${await app.getUrl()}`);
+}
+bootstrap();
+```
+
+### app.module.ts
+
+```TYPESCRIPT
+import { Module } from '@nestjs/common';
+import { CatsModule } from './cats/cats.module';
+import { CoreModule } from './core/core.module';
+
+@Module({
+  imports: [CatsModule],
+})
+export class AppModule {}
+```
+
+### cat.module.ts
+
+- CatsModule sẽ chứa CatsController để bắt tất cả các api và sẽ xử lý logic thông qua CatsService
+
+```TYPESCRIPT
+import { Module } from '@nestjs/common';
+import { CatsController } from './cats.controller';
+import { CatsService } from './cats.service';
+
+@Module({
+  controllers: [CatsController],
+  providers: [CatsService],
+})
+export class CatsModule {}
+```
+
+### cat.controller.ts
+
+- Chúng ta sẽ tạo 3 api: tạo thông tin mèo, lấy tất cả danh sách mèo, lấy thông tin của 1 chú mèo
+- Chúng ta sẽ phân quyền để tạo thông tin mèo
+
+```TYPESCRIPT
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { ParseIntPipe } from '../common/pipes/parse-int.pipe';
+import { CatsService } from './cats.service';
+import { CreateCatDto } from './dto/create-cat.dto';
+import { Cat } from './interfaces/cat.interface';
+
+@UseGuards(RolesGuard)
+@Controller('cats')
+export class CatsController {
+  constructor(private readonly catsService: CatsService) {}
+
+  @Post()
+  @Roles('admin')
+  async create(@Body() createCatDto: CreateCatDto) {
+    this.catsService.create(createCatDto);
+  }
+
+  @Get()
+  async findAll(): Promise<Cat[]> {
+    return this.catsService.findAll();
+  }
+
+  @Get(':id')
+  findOne(
+    @Param('id', new ParseIntPipe())
+    id: number,
+  ) {
+    // get by ID logic
+  }
+}
+```
+
+- `@Injectable()` là một decorator được sử dụng để đánh dấu một class như một provider. Provider là một thành phần trong NestJS đảm nhận nhiệm vụ cung cấp dependencies (phụ thuộc) cho các class khác trong ứng dụng.
+
+- `UseGuards` là một decorator được sử dụng để bảo vệ các route trong ứng dụng. Nó giúp kiểm tra và xác thực quyền truy cập trước khi cho phép request tiếp tục vào các route được bảo vệ.
+
+### roles.guard.ts
+
+- Reflector là một class dùng để truy xuất metadata (dữ liệu mô tả) được đính kèm vào các class, method và các thành phần khác trong ứng dụng.
+
+- Reflector cung cấp các phương thức để truy cập và xử lý metadata, như get(), getAllAndMerge(), getAll(), has(), v.v. Bằng cách sử dụng Reflector, bạn có thể truy cập các thông tin metadata được đính kèm vào các class, method và decorators trong NestJS.
+
+```TYPESCRIPT
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private readonly reflector: Reflector) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const roles = this.reflector.get<string[]>('roles', context.getHandler());
+    if (!roles) {
+      return true;
+    }
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+    const hasRole = () =>
+      user.roles.some(role => !!roles.find(item => item === role));
+
+    return user && user.roles && hasRole();
+  }
+}
+```
+
+### role.decorator.ts
+
+```TYPESCRIPT
+import { SetMetadata } from '@nestjs/common';
+
+export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
+```
+
+- metadata là thông tin mô tả về các thành phần trong ứng dụng, chẳng hạn như các module, controllers, routes, providers, và các decorator. Metadata cung cấp các thông tin về các thành phần này để NestJS có thể định cấu trúc và quản lý chúng một cách linh hoạt.
+
+- Metadata trong NestJS thường được định nghĩa bằng cách sử dụng decorator. Decorator là các hàm đặc biệt được sử dụng để thêm metadata vào các thành phần như classes, methods, properties.
+
+### create-cat.dto.ts
+
+- Đinh nghĩa cấu trúc dữ liệu gởi lên của request và validate, setup các dạng exception để trả về cho client
+
+```TYPESCRIPT
+import { IsInt, IsString } from 'class-validator';
+
+export class CreateCatDto {
+  @IsString()
+  readonly name: string;
+
+  @IsInt()
+  readonly age: number;
+
+  @IsString()
+  readonly breed: string;
+}
+```
+
+### cats.service.ts
+
+```TYPESCRIPT
+import { Injectable } from '@nestjs/common';
+import { Cat } from './interfaces/cat.interface';
+
+@Injectable()
+export class CatsService {
+  private readonly cats: Cat[] = [];
+
+  create(cat: Cat) {
+    this.cats.push(cat);
+  }
+
+  findAll(): Cat[] {
+    return this.cats;
+  }
+}
+```
+
+### cat.interface.ts
+
+- Khai báo kiểu dữ liệu cho api
+
+```TYPESCRIPT
+export interface Cat {
+  name: string;
+  age: number;
+  breed: string;
+}
+```
