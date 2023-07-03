@@ -1,0 +1,113 @@
+---
+title: '03 NestJs | Gateways trong NestJs'
+thumnail: 'https://fastly.picsum.photos/id/15/2500/1667.jpg?hmac=Lv03D1Y3AsZ9L2tMMC1KQZekBVaQSDc1waqJ54IHvo4'
+date: 2023-07-03T12:32:14Z
+tags: ['nestjs']
+draft: false
+summary: 'Gateways một thành phần quan trọng trong kiến trúc microservices. Gateway là một loại module hoạt động như một endpoint để giao tiếp với các services khác'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+Mỗi bài về NestJs với đếm số tăng dần mình sẽ giới thiệu tới những phần khác mà các bạn cần nắm so với những phần trước để giúp chúng ta đi nhanh hơn và tìm hiểu được nhiều hơn nhá. Còn về cách thiết kế apis hoặc gắn modules như thế nào thì các bạn có thể tham khảo những bài trước nhá
+
+Trên thanh menu các bạn nhấn qua tabs thẻ chọn NestJs để xem được những bài viết trước nhá.
+
+Gateway cho phép gửi và nhận các yêu cầu (requests) và phản hồi (responses) từ các dịch vụ khác nhau thông qua giao thức mạng như HTTP, WebSockets, TCP, v.v. Nó giúp tạo ra một lớp trung gian để xử lý các yêu cầu từ client và chuyển tiếp chúng đến các dịch vụ tương ứng.
+
+Với NestJS, bạn có thể xây dựng một Gateway bằng cách sử dụng `@WebSocketGateway` hoặc `@GrpcGateway` decorators
+
+```BASH
+npm i --save @nestjs/websockets @nestjs/platform-socket.io
+```
+
+### app.module.ts
+
+Chúng ta sẽ tạo ra module EventModule để lắng nghe các sự kiện thông qua WebSocketGateway
+Chi tiết: https://docs.nestjs.com/websockets/gateways
+
+```TYPESCRIPT
+import { Module } from '@nestjs/common';
+import { EventsModule } from './events/events.module';
+
+@Module({
+  imports: [EventsModule],
+})
+export class AppModule {}
+```
+
+- events.module.ts
+
+```TYPESCRIPT
+import { Module } from '@nestjs/common';
+import { EventsGateway } from './events.gateway';
+
+@Module({
+  providers: [EventsGateway],
+})
+export class EventsModule {}
+```
+
+### events.gateway.ts
+
+- `WebSocketGateway` sẽ mặc định lắng nghe cổng 80 và nhận tất cả request từ các domain khác nhau bằng origin: '\*'
+- @SubscribeMessage('events') là lắng nghe những event có message là `events`
+
+```TYPESCRIPT
+import {
+  MessageBody,
+  SubscribeMessage,
+  WebSocketGateway,
+  WebSocketServer,
+  WsResponse,
+} from '@nestjs/websockets';
+import { from, Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { Server } from 'socket.io';
+
+@WebSocketGateway({
+  cors: {
+    origin: '*',
+  },
+})
+export class EventsGateway {
+  @WebSocketServer()
+  server: Server;
+
+  // sử dụng director MessageBody để lấy data
+  @SubscribeMessage('events')
+  findAll(@MessageBody() data: any): Observable<WsResponse<number>> {
+    return from([1, 2, 3]).pipe(map(item => ({ event: 'events', data: item })));
+  }
+
+  // không sử dụng director
+  @SubscribeMessage('events')
+    handleEvent(client: Socket, data: string): string {
+      return data;
+    }
+
+  @SubscribeMessage('identity')
+  async identity(@MessageBody() data: number): Promise<number> {
+    return data;
+  }
+}
+```
+
+### Response bất đồng bộ
+
+Trong WebSocketGateway hỗ trợ cả responses đồng bộ và bất đồng bộ. 1 message sẽ được trả về với `Observable`, trong trường hợp này thì kết quả sẽ được trả về khi stream được hoàn thành.
+
+```TYPESCRIPT
+@SubscribeMessage('events')
+onEvent(@MessageBody() data: unknown): Observable<WsResponse<number>> {
+  const event = 'events';
+  const response = [1, 2, 3];
+
+  return from(response).pipe(
+    map(data => ({ event, data })),
+  );
+}
+```
