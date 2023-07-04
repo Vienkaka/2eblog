@@ -1,5 +1,5 @@
 ---
-title: '03 NestJs | Gateways trong NestJs'
+title: '03 Nest | Gateways trong NestJs'
 thumnail: 'https://fastly.picsum.photos/id/15/2500/1667.jpg?hmac=Lv03D1Y3AsZ9L2tMMC1KQZekBVaQSDc1waqJ54IHvo4'
 date: 2023-07-03T12:32:14Z
 tags: ['nestjs']
@@ -11,6 +11,8 @@ canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-
 ---
 
 <TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+## Giới thiệu
 
 Mỗi bài về NestJs với đếm số tăng dần mình sẽ giới thiệu tới những phần khác mà các bạn cần nắm so với những phần trước để giúp chúng ta đi nhanh hơn và tìm hiểu được nhiều hơn nhá. Còn về cách thiết kế apis hoặc gắn modules như thế nào thì các bạn có thể tham khảo những bài trước nhá
 
@@ -53,7 +55,10 @@ export class EventsModule {}
 
 ### events.gateway.ts
 
+- @WebSocketServer(): Decorator được sử dụng để truy cập đến đối tượng Server WebSocket để thực hiện các phương thức như emit.
+
 - `WebSocketGateway` sẽ mặc định lắng nghe cổng 80 và nhận tất cả request từ các domain khác nhau bằng origin: '\*'
+
 - @SubscribeMessage('events') là lắng nghe những event có message là `events`
 
 ```TYPESCRIPT
@@ -110,4 +115,152 @@ onEvent(@MessageBody() data: unknown): Observable<WsResponse<number>> {
     map(data => ({ event, data })),
   );
 }
+```
+
+## Các phương thức
+
+- `@WebSocketGateway()`: Decorator được sử dụng để đánh dấu một class là một WebSocket Gateway.
+
+- @SubscribeMessage(): Decorator được sử dụng để đăng ký một phương thức xử lý một loại sự kiện từ client. Phương thức này sẽ được gọi khi nhận được sự kiện từ client.
+
+- @MessageBody(): Decorator được sử dụng để nhận dữ liệu từ client gửi lên khi xử lý một sự kiện.
+
+```TYPESCRIPT
+@WebSocketGateway()
+export class MyGateway {
+  @SubscribeMessage('event')
+  handleEvent(@MessageBody() data: any) {
+    // Xử lý sự kiện từ client
+    console.log('Received event:', data);
+  }
+}
+```
+
+- @ConnectedSocket(): Decorator được sử dụng để nhận thông tin về client kết nối khi xử lý một sự kiện.
+
+```TYPESCRIPT
+@WebSocketGateway()
+export class MyGateway {
+  @SubscribeMessage('event')
+  handleEvent(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
+    // Xử lý sự kiện từ client và truy cập thông tin về client
+    console.log('Client ID:', client.id);
+    console.log('Received event:', data);
+  }
+}
+```
+
+- @OnGatewayConnection(): Decorator được sử dụng để đăng ký một phương thức xử lý khi có một client kết nối tới Gateway.
+
+```TYPESCRIPT
+@WebSocketGateway()
+export class MyGateway implements OnGatewayConnection {
+  handleConnection(client: Socket, ...args: any[]) {
+    // Xử lý khi có client kết nối tới
+    console.log('New client connected:', client.id);
+  }
+}
+```
+
+- @OnGatewayDisconnect(): Decorator được sử dụng để đăng ký một phương thức xử lý khi một client ngắt kết nối từ Gateway.
+
+```TYPESCRIPT
+@WebSocketGateway()
+export class MyGateway implements OnGatewayDisconnect {
+  handleDisconnect(client: Socket) {
+    // Xử lý khi có client ngắt kết nối
+    console.log('Client disconnected:', client.id);
+  }
+}
+```
+
+- server.emit(): Phương thức được sử dụng để gửi một sự kiện hoặc dữ liệu đến tất cả các client đang kết nối với Gateway.
+
+```TYPESCRIPT
+@WebSocketGateway()
+export class MyGateway {
+  constructor(private readonly server: Server) {}
+
+  sendMessageToAll(message: string) {
+    // Gửi tin nhắn đến tất cả client
+    this.server.emit('message', message);
+  }
+}
+```
+
+- socket.emit(): Phương thức được sử dụng để gửi một sự kiện hoặc dữ liệu đến một client cụ thể.
+
+```TYPESCRIPT
+@WebSocketGateway()
+export class MyGateway {
+  @SubscribeMessage('event')
+  handleEvent(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
+    // Gửi dữ liệu đến client gửi sự kiện
+    client.emit('response', 'Received event: ' + data);
+  }
+}
+
+```
+
+- socket.broadcast.emit(): Phương thức được sử dụng để gửi một sự kiện hoặc dữ liệu đến tất cả các client khác trừ client gửi sự kiện.
+
+```TYPESCRIPT
+@WebSocketGateway()
+export class MyGateway {
+  @SubscribeMessage('event')
+  handleEvent(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
+    // Gửi dữ liệu đến tất cả client khác trừ client gửi sự kiện
+    client.broadcast.emit('response', 'Received event: ' + data);
+  }
+}
+```
+
+- socket.join(): Phương thức được sử dụng để tham gia một phòng (room) cụ thể để gửi dữ liệu cho một nhóm client.
+
+- socket.to().emit(): Phương thức được sử dụng để gửi một sự kiện hoặc dữ liệu đến tất cả các client trong một phòng cụ thể.
+
+```TYPESCRIPT
+@WebSocketGateway()
+export class MyGateway {
+  @SubscribeMessage('joinRoom')
+  handleJoinRoom(@MessageBody() room: string, @ConnectedSocket() client: Socket) {
+    // Tham gia phòng và gửi thông điệp đến tất cả client trong phòng
+    client.join(room);
+    client.to(room).emit('message', 'New client joined the room');
+  }
+}
+```
+
+- socket.leave(): Phương thức được sử dụng để rời khỏi một phòng (room) đã tham gia trước đó.
+
+```TYPESCRIPT
+socket.on('leaveRoom', (room: string) => {
+  // Rời khỏi phòng
+  socket.leave(room);
+  console.log(`Left room ${room}`);
+});
+```
+
+- socket.on(): Phương thức được sử dụng để đăng ký lắng nghe một sự kiện từ client.
+
+```TYPESCRIPT
+socket.on('message', (data: any) => {
+  // Xử lý tin nhắn từ client
+  console.log('Received message:', data);
+});
+```
+
+- socket.off(): Phương thức được sử dụng để hủy đăng ký lắng nghe sự kiện từ client.
+
+```TYPESCRIPT
+const handleEvent = (data: any) => {
+  // Xử lý sự kiện từ server
+  console.log('Received event:', data);
+};
+
+// Đăng ký lắng nghe sự kiện
+socket.on('event', handleEvent);
+
+// Hủy đăng ký lắng nghe sự kiện
+socket.off('event', handleEvent);
 ```
