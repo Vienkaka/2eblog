@@ -1,0 +1,131 @@
+---
+title: '04 Nest | Microservices'
+thumnail: 'https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/post/nest-microservices'
+date: 2023-07-05T12:32:14Z
+tags: ['nestjs']
+draft: false
+summary: 'NestJs còn hỗ trợ kiến trúc microservices'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3, 4)} />
+
+Trong NestJs các khái niệm liên quan như injection, decorators, exception, pipes, guards, interceptor đều được áp dụng trong microservice. Trong NestJs microservice sử dụng nhiều lớp transport khác nhau hơn là HTTP.
+
+## Install
+
+```BASH
+npm i --save @nestjs/microservices
+```
+
+## Bắt đầu thôi
+
+### createMicroservice
+
+Để sử dụng microservice, cần sử dụng `createMicroservice()` trong NestFactory:
+
+- transport: chỉ định phương thức
+- options: các setup cho phương thức như: host, port, retryAttempts( số lần thử lại message ), retryDelay( độ chậm giữa các lần thử lại message )
+
+```TYPESCRIPT
+import { NestFactory } from '@nestjs/core';
+import { Transport, MicroserviceOptions } from '@nestjs/microservices';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.createMicroservice<MicroserviceOptions>(
+    AppModule,
+    {
+      transport: Transport.TCP,
+    },
+  );
+  await app.listen();
+}
+bootstrap();
+```
+
+### @MessagePattern giúp giao tiếp giữa các services với nhau
+
+```TYPESCRIPT
+import { Controller } from '@nestjs/common';
+import { MessagePattern } from '@nestjs/microservices';
+
+@Controller()
+export class MathController {
+  @MessagePattern({ cmd: 'sum' })
+  accumulate(data: number[]): number {
+    return (data || []).reduce((a, b) => a + b);
+  }
+}
+```
+
+- @MessagePattern nhận tất cả message có tên time.us . Ví dụ: time.us.newyork
+
+```TYPESCRIPT
+@MessagePattern('time.us.*')
+getDate(@Payload() data: number[], @Ctx() context: NatsContext) {
+  console.log(`Subject: ${context.getSubject()}`); // e.g. "time.us.east"
+  return new Date().toLocaleTimeString(...);
+}
+```
+
+### Bất đồng bộ
+
+```TYPESCRIPT
+@MessagePattern({ cmd: 'sum' })
+accumulate(data: number[]): Observable<number> {
+  return from([1, 2, 3]);
+}
+```
+
+### @EventPattern giúp lắng nghe message từ các microservice khác
+
+```TYPESCRIPT
+import { Controller } from '@nestjs/common';
+import { EventPattern } from '@nestjs/microservices';
+
+@Controller()
+export class AppController {
+  @EventPattern('example.event')
+  async handleEvent(data: any): Promise<void> {
+    // Xử lý sự kiện
+    console.log('Received event:', data);
+    // ...
+  }
+}
+```
+
+## Client
+
+- Đăng ký modules. Đăng ký đúng tên và transport
+
+```TYPESCRIPT
+@Module({
+  imports: [
+    ClientsModule.register([
+      { name: 'MATH_SERVICE', transport: Transport.TCP },
+    ]),
+  ]
+  ...
+})
+```
+
+### Gởi message
+
+```TYPESCRIPT
+sum(): Observable<number> {
+  const pattern = { cmd: 'sum' };
+  const payload = [1, 2, 3];
+  return this.client.send<number>(pattern, payload);
+}
+```
+
+### public events
+
+```TYPESCRIPT
+async publish() {
+  this.client.emit<number>('user_created', new UserCreatedEvent());
+}
+```
