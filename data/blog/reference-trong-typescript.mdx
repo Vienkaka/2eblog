@@ -1,0 +1,206 @@
+---
+title: 'References trong TSconfig | Type Checking'
+thumnail: 'https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/post/10b88c68-typescript-logo.png?t=2023-07-06T02%3A34%3A09.323Z'
+date: 2023-07-06T12:32:14Z
+tags: ['typescript']
+draft: false
+summary: 'Có rất nhiều reference trong TSconfig, khi các bạn tạo 1 dự án sử dụng typescript các bạn thường sẽ tham khảo những file config đã được chia sẻ trước đó nhưng vẫn chưa nắm được rule và sức mạnh của từng reference. Hôm nay mình sẽ đi giải thích chi tiết giúp các bạn config typescript tối ưu hơn'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3)} />
+
+### allowUnreachableCode
+
+Cho phép có thể không đọc được code. Hiểu dữ chưa. Lấy ví dụ nhá:
+Có 3 giá trị:
+
+- false: khi không đọc được code thì báo lỗi
+- true: cho phép không đọc được code
+- undefined: không thông báo gì hết (như khi hover vào code thì vẫn hiện ra lỗi nhan)
+
+```TYPESCRIPT
+    switch (type) {
+      case TYPE_DATA.DATE_TIME: {
+        return <MTextLine label={`${label}:`} value={fDateTime(value)} />;
+        break;
+        //false: Unreachable code detected - dòng code break bị gạch đỏ dưới code nè vì nó return rồi thì break không thể đọc được
+        //true: không báo gì hết
+        //undefined: cũng không báo gì hết, nhưng hover vào chữ break thì vẫn hiện lỗi nhan
+      }
+      case TYPE_DATA.DATE: {
+        return <MTextLine label={`${label}:`} value={fDate(value)} />;
+        break;
+      }
+    //   ...
+    }
+```
+
+### alwaysStrict
+
+Cho phép mã code của bạn luôn được kiểm tra với chế độ nghiêm ngặt “use strict” của ECMAScript
+
+### exactOptionalPropertyTypes
+
+Cho phép mở rộng thuộc tính của type. Giá trị:
+
+- false: không cho phép
+- true: cho phép
+
+```TYPESCRIPT
+interface UserDefaults {
+  // The absence of a value represents 'system'
+  colorThemeOverride?: "dark" | "light";
+}
+
+const settings = getUserSettings();
+settings.colorThemeOverride = "dark";
+settings.colorThemeOverride = "light";
+
+settings.colorThemeOverride = undefined; // khi false thì dòng này bị lỗi vì không cho phép mở rộng type colorThemeOverride là undefined
+```
+
+### noFallthroughCasesInSwitch
+
+Không cần thoát khỏi case trong switch. Nếu set `noFallthroughCasesInSwitch` là true thì trong case của switch bạn chỉ cần xử lý logic mà không cần break; return; throw;
+
+```TYPESCRIPT
+const a: number = 6;
+
+switch (a) {
+  case 0:
+    console.log("even");
+    // Không cần break; return; throw;
+  case 1:
+    console.log("odd");
+    break;
+}
+```
+
+### noImplicitOverride
+
+Không cho ghi đè thuộc tính áp dụng với class. Ví dụ
+
+```TYPESCRIPT
+class Album {
+  download() {
+    // Default behavior
+  }
+}
+
+class SharedAlbum extends Album {
+  download() {
+    // true: Function download bị báo lỗi vì đã ghi đè lên function download của Album
+  }
+}
+```
+
+### noImplicitReturns
+
+Không trả về giá trị. Khi bật là true thì typescript sẽ kiểm tra tất cả các function để đảm bảo rằng phải trả về giá trị
+
+```TYPESCRIPT
+// true: lỗi khi định nghĩa type trả về là string nhưng function trả về string | void
+function lookupHeadphonesManufacturer(color: "blue" | "black"): string {
+  if (color === "blue") {
+    return "beats";
+  } else {
+    "bose";
+  }
+}
+```
+
+### noPropertyAccessFromIndexSignature
+
+Không cho phép truy cập object bằng indexed (object["key"])
+
+```TYPESCRIPT
+interface GameSettings {
+  // Known up-front properties
+  speed: "fast" | "medium" | "slow";
+  quality: "high" | "low";
+
+  // Assume anything unknown to the interface
+  // is a string.
+  [key: string]: string;
+}
+
+const settings = getSettings();
+settings.speed; //"fast" | "medium" | "slow"
+settings.quality; //"high" | "low"
+
+settings.username; // bình thường như này sẽ bị lỗi luôn
+settings["username"]; // false: thì truy cập kiểu này vẫn được
+settings["username"]; // true: thì không cho truy cập kiểu này
+```
+
+### noUncheckedIndexedAccess
+
+Dựa vào khai báo type của đối tượng cho phép lấy type của thuộc tính mặc dù key vừa lấy không thuộc đối tượng
+
+```TYPESCRIPT
+interface EnvironmentVars {
+  NAME: string;
+  OS: string;
+
+  // Unknown properties are covered by this index signature.
+  [propName: string]: string;
+}
+
+declare const env: EnvironmentVars;
+
+// Declared as existing
+const sysName = env.NAME;
+const os = env.OS;
+
+const os: string
+
+// Not declared, but because of the index
+// signature, then it is considered a string
+const nodeEnv = env.NODE_ENV;
+// noUncheckedIndexedAccess: false => nodeEnv: string
+// noUncheckedIndexedAccess: true => nodeEnv: string | undefined
+```
+
+### noUnusedLocals
+
+true: báo lỗi khi không sử dụng
+
+```TYPESCRIPT
+const createKeyboard = (modelID: number) => {
+  const defaultModelID = 23;
+// 'defaultModelID' is declared but its value is never read.
+  return { type: "keyboard", modelID };
+};
+```
+
+### noUnusedParameters
+
+true: báo lỗi khi params không được sử dụng
+
+```TYPESCRIPT
+const createDefaultKeyboard = (modelID: number) => {
+// 'modelID' is declared but its value is never read.
+  const defaultModelID = 23;
+  return { type: "keyboard", modelID: defaultModelID };
+};
+```
+
+### strictNullChecks
+
+Kiểm tra biến có bị null hay không
+
+```TYPESCRIPT
+declare const loggedInUsername: string;
+
+const users = [
+  { name: "Oby", age: 12 },
+  { name: "Heera", age: 32 },
+];
+
+const loggedInUser = users.find((u) => u.name === loggedInUsername);
+console.log(loggedInUser.age);
+// 'loggedInUser' is possibly 'undefined'.
+```
