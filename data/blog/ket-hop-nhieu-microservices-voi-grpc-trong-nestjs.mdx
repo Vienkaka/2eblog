@@ -1,0 +1,134 @@
+---
+title: '05 Nest | gRPC trong NestJs Microservices'
+thumnail: 'https://fastly.picsum.photos/id/74/4288/2848.jpg?hmac=q02MzzHG23nkhJYRXR-_RgKTr6fpfwRgcXgE0EKvNB8'
+date: 2023-07-22T12:32:14Z
+tags: ['nestjs']
+draft: false
+summary: 'Khi một server muốn "nói chuyện" với server khác sẽ cần phải encode data (JSON, XML), phía nhận cũng phải làm công việc ngược lại là decode data mới hiểu thằng kia nói gì với mình rôi lại phải encode lại tiếp. Việc này tiêu tốn khá nhiều tài nguyên xử lý (CPU) mà lẽ ra chỉ cần làm ở bước đầu và cuối (đầu nhận và trả về cuối cùng). Tối ưu cho việc "giao tiếp" giữa các server là lý do gRPC ra đời'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3, 4)} />
+Khi một server muốn "nói chuyện" với server khác sẽ cần phải encode data (JSON, XML), phía nhận cũng phải làm công việc ngược lại là decode data mới hiểu thằng kia nói gì với mình rôi lại phải encode lại tiếp. Việc này tiêu tốn khá nhiều tài nguyên xử lý (CPU) mà lẽ ra chỉ cần làm ở bước đầu và cuối (đầu nhận và trả về cuối cùng). Tối ưu cho việc "giao tiếp" giữa các server là lý do gRPC ra đời.
+
+gRPC là khung gọi thủ tục từ xa hiệu suất cao mã nguồn mở đa nền tảng. gRPC ban đầu được tạo bởi Google, sử dụng một cơ sở hạ tầng RPC có mục đích chung duy nhất có tên là Stubby để kết nối số lượng lớn các dịch vụ siêu nhỏ chạy trong và trên các trung tâm dữ liệu của Google từ khoảng năm 2001
+
+## Install
+
+```BASH
+npm i --save @grpc/grpc-js @grpc/proto-loader
+```
+
+## Overview
+
+- Sử dụng phương thức: Transport.GRPC
+
+```TYPESCRIPT
+const app = await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
+  transport: Transport.GRPC,
+  options: {
+    package: 'hero',
+    protoPath: join(__dirname, 'hero/hero.proto'),
+  },
+});
+```
+
+- Trong `nest-cli.json` cho truy cập các file `.proto`. File `.proto` là các file định nghĩa giao thức của gRPC (gRPC Protocol Buffer), sử dụng ngôn ngữ Protobuf (Protocol Buffers) để xác định cấu trúc dữ liệu và giao diện cho các dịch vụ. Protobuf là một ngôn ngữ định nghĩa dữ liệu nhị phân, hữu ích trong việc định nghĩa các message và service một cách độc lập với ngôn ngữ lập trình cụ thể.
+
+```JSON
+{
+  "compilerOptions": {
+    "assets": ["**/*.proto"],
+    "watchAssets": true
+  }
+}
+```
+
+## Ví dụ
+
+Tạo 1 ứng dụng gRPC được gọi tới `HerosService`. Tạo file hero/hero.proto:
+- Tạo `HerosService` chứa method `FindOne`
+- Tạo các argument `HeroById` và trả về 1 message `Hero`
+
+### hero.proto
+
+```TYPESCRIPT
+// hero/hero.proto
+syntax = "proto3";
+
+package hero;
+
+service HeroesService {
+  rpc FindOne (HeroById) returns (Hero) {}
+}
+
+message HeroById {
+  int32 id = 1;
+}
+
+message Hero {
+  int32 id = 1;
+  string name = 2;
+}
+```
+### heroes.controller.ts
+
+- Trong mỗi method của controler cần sử dụng decorator `@GrpcMethod` chứa 2 tham số là gRPC service và method của gRPC service
+- Bạn cũng có thể sử dụng `@GrpcMethod()` thay cho `@GrpcMethod('HeroesService', 'FindOne')` vì Nest sẽ tự động detect được tên service cũng như tên method
+
+```TYPESCRIPT
+@Controller()
+export class HeroesController {
+  @GrpcMethod('HeroesService', 'FindOne')
+  findOne(data: HeroById, metadata: Metadata, call: ServerUnaryCall<any, any>): Hero {
+    const items = [
+      { id: 1, name: 'John' },
+      { id: 2, name: 'Doe' },
+    ];
+    return items.find(({ id }) => id === data.id);
+  }
+}
+```
+
+## Client
+
+- Bạn cần phải đăng ký 1 `ClientsModule` với phương thức `Transport.GRPC` và đặc biệt là cần phải định nghĩa 1 file `.proto`
+
+```TYPESCRIPT
+imports: [
+  ClientsModule.register([
+    {
+      name: 'HERO_PACKAGE',
+      transport: Transport.GRPC,
+      options: {
+        package: 'hero',
+        protoPath: join(__dirname, 'hero/hero.proto'),
+      },
+    },
+  ]),
+];
+```
+
+### Service
+
+- `onModuleInit` là function chạy sau constructor
+- `getHero` trả về 1 `Observable`
+
+```TYPESCRIPT
+@Injectable()
+export class AppService implements OnModuleInit {
+  private heroesService: HeroesService;
+
+  constructor(@Inject('HERO_PACKAGE') private client: ClientGrpc) {}
+
+  onModuleInit() {
+    this.heroesService = this.client.getService<HeroesService>('HeroesService');
+  }
+
+  getHero(): Observable<string> {
+    return this.heroesService.findOne({ id: 1 });
+  }
+}
+```
