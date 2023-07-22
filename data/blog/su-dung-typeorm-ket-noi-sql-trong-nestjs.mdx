@@ -1,0 +1,280 @@
+---
+title: '06 Nest | TypeORM kết nối SQL trong NestJs'
+thumnail: 'https://fastly.picsum.photos/id/28/4928/3264.jpg?hmac=GnYF-RnBUg44PFfU5pcw_Qs0ReOyStdnZ8MtQWJqTfA'
+date: 2023-07-23T12:32:14Z
+tags: ['nestjs']
+draft: false
+summary: 'Hôm nay mình sẽ tạo project sử dụng typeORM kết nối SQL nhá'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3, 4)} />
+
+### TypeORM
+
+- TypeORM là ORM (Object-Relational mapping) tạo dựng khung xương(Shema) giúp kết nối NestJs với cơ sở dữ liệu.
+Chi tiết: https://typeorm.io/
+
+- Sql: là cơ sở dữ liệu
+
+## Install
+
+```BASH
+npm install --save @nestjs/typeorm typeorm mysql2
+```
+
+## app.module.ts
+
+```TYPESCRIPT
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      type: 'mysql',
+      host: 'localhost',
+      port: 3306,
+      username: 'root',
+      password: 'root',
+      database: 'test',
+      entities: [],
+      synchronize: true,
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+## user.entity.ts
+
+```TYPESCRIPT
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity()
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  firstName: string;
+
+  @Column()
+  lastName: string;
+
+  @Column({ default: true })
+  isActive: boolean;
+}
+```
+
+- import entity
+
+```TYPESCRIPT
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from './users/user.entity';
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      // ...
+      entities: [User],
+      synchronize: true,
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+## user.module.ts
+
+- forFeature() để đăng ký TypeOrm cho User entity
+
+```TYPESCRIPT
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsersService } from './users.service';
+import { UsersController } from './users.controller';
+import { User } from './user.entity';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([User])],
+  providers: [UsersService],
+  controllers: [UsersController],
+})
+export class UsersModule {}
+```
+
+- Nhớ import UsersModule vào AppModule
+
+## Relations
+
+- One-to-one: mỗi dòng trong bảng chính sẽ móc nối một-một với bảng phụ thông qua @OneToOne() decorator
+- One-to-many và many-to-one: mỗi dòng trong bảng chính sẽ móc nối một hoặc nhiều dòng bảng phụ thông qua @OneToMany() và mỗi dòng ở bảng phụ sẽ móc nối tới 1 dòng ở bảng chính thông qua @OneToMany() decorator
+- Many-to-many: mỗi dòng trong bảng chính sẽ móc nối tới nhiều dòng ở bảng phụ và 1 dòng ở bảng phụ sẽ móc nối tới nhiều dòng ở bảng chính thông qua @ManyToMany() decorator
+
+### Ví dụ
+
+```TYPESCRIPT
+
+- Một user chưa nhiều ảnh
+
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { Photo } from '../photos/photo.entity';
+
+@Entity()
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  firstName: string;
+
+  @Column()
+  lastName: string;
+
+  @Column({ default: true })
+  isActive: boolean;
+
+  @OneToMany(type => Photo, photo => photo.user)
+  photos: Photo[];
+}
+```
+
+### Auto load entity
+
+```TYPESCRIPT
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      ...
+      autoLoadEntities: true,
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### Kết hợp entity tạo schema
+
+```TYPESCRIPT
+import { EntitySchema } from 'typeorm';
+import { User } from './user.entity';
+
+export const UserSchema = new EntitySchema<User>({
+  name: 'User',
+  target: User,
+  columns: {
+    id: {
+      type: Number,
+      primary: true,
+      generated: true,
+    },
+    firstName: {
+      type: String,
+    },
+    lastName: {
+      type: String,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  relations: {
+    photos: {
+      type: 'one-to-many',
+      target: 'Photo', // the name of the PhotoSchema
+    },
+  },
+});
+```
+
+- Cập nhật module
+
+```TYPESCRIPT   
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserSchema } from './user.schema';
+import { UsersController } from './users.controller';
+import { UsersService } from './users.service';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([UserSchema])],
+  providers: [UsersService],
+  controllers: [UsersController],
+})
+export class UsersModule {}
+```
+
+### user.service.ts
+
+- Sử dụng transaction để tạo dữ liệu
+
+```TYPESCRIPT
+@Injectable()
+export class UsersService {
+  constructor(private dataSource: DataSource) {}
+
+  async createMany(users: User[]) {
+    await this.dataSource.transaction(async manager => {
+        await manager.save(users[0]);
+        await manager.save(users[1]);
+    });
+  }
+}
+```
+
+## Migration
+
+- Migration là cách để cập nhật dữ liệu dựa theo schema giữ cho ứng dụng luôn cập nhật dữ liệu đúng với yêu cầu
+- Cập nhật migration của typeorm thông qua: TypeORM CLI. Phần này các bạn tham khảo thêm ở trang chủ typeorm nhá
+
+## Multiple databases
+
+```TYPESCRIPT
+const defaultOptions = {
+  type: 'postgres',
+  port: 5432,
+  username: 'user',
+  password: 'password',
+  database: 'db',
+  synchronize: true,
+};
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      ...defaultOptions,
+      host: 'user_db_host',
+      entities: [User],
+    }),
+    TypeOrmModule.forRoot({
+      ...defaultOptions,
+      name: 'albumsConnection',
+      host: 'album_db_host',
+      entities: [Album],
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### album service
+
+```TYPESCRIPT
+@Injectable()
+export class AlbumsService {
+  constructor(
+    @InjectDataSource('albumsConnection')
+    private dataSource: DataSource,
+    @InjectEntityManager('albumsConnection')
+    private entityManager: EntityManager,
+  ) {}
+}
+```
