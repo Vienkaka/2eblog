@@ -1,0 +1,210 @@
+---
+title: '07 Nest | mongodb'
+thumnail: 'https://fastly.picsum.photos/id/18/2500/1667.jpg?hmac=JR0Z_jRs9rssQHZJ4b7xKF82kOj8-4Ackq75D_9Wmz8'
+date: 2023-07-26T12:32:14Z
+tags: ['nestjs']
+draft: false
+summary: 'Với mỗi loại cơ sở dữ liệu thì sẽ có những điểm mạnh yếu khác nhau phù thuộc vào từng dự án. Hôm nay mình sẽ kết nối NestJs với mongodb thông qua mongose'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3, 4)} />
+MongoDB là một cơ sở dữ liệu NoSQL hướng đối tượng, đơn giản, linh động và có thể mở rộng.
+
+Nó dựa trên mô hình lưu trữ NoSQL document. Các đối tượng dữ liệu được lưu trữ dưới dạng các tài liệu riêng biệt bên trong một collection – thay vì lưu trữ dữ liệu vào các cột và hàng của cơ sở dữ liệu quan hệ truyền thống.
+
+Ngôn ngữ MongoDB là triển khai một kho lưu trữ dữ liệu cung cấp hiệu suất cao, tính sẵn sàng cao và tự động mở rộng
+
+### Ưu điểm của MongoDB
+
+Document oriented
+Hiệu suất cao
+Tính sẵn sàng cao – Nhân rộng
+Khả năng mở rộng cao – Sharding
+Năng động – Không có lược đồ cứng nhắc.
+Linh hoạt – thêm / xóa trường có ít hoặc không ảnh hưởng đến ứng dụng
+Dữ liệu không đồng nhất
+Không joins
+Phân phối được
+Biểu diễn dữ liệu trong JSON hoặc BSON
+Hỗ trợ không gian địa lý (Geospatial)
+Tích hợp dễ dàng với BigData Hadoop
+Ngôn ngữ truy vấn dựa trên tài liệu mạnh mẽ như SQL
+Các bản phân phối cloud như AWS, Microsoft, RedHat, dotCloud và SoftLayer, v.v … Trên thực tế, MongoDB được xây dựng cho cloud. Kiến trúc mở rộng quy mô tự nhiên của nó, được kích hoạt bởi sharding, liên kết tốt với quy mô và sự nhanh nhẹn có được nhờ điện toán đám mây.
+
+### Nhược điểm của MongoDB
+
+Một nhược điểm của NoSQL là hầu hết các giải pháp đều không tuân thủ ACID mạnh mẽ (Atomic, Consistency, Isolation, Durability) như các hệ thống RDBMS được thiết lập tốt hơn.
+Giao dịch phức tạp
+Không có chức năng hoặc thủ tục lưu trữ tồn tại nơi bạn có thể liên kết logic
+
+### Tốt cho:
+
+Danh mục sản phẩm thương mại điện tử.
+Blog và quản lý nội dung.
+Phân tích thời gian thực và ghi nhật ký tốc độ cao, bộ nhớ đệm và khả năng mở rộng cao.
+Quản lý cấu hình.
+Duy trì dữ liệu dựa trên vị trí – Dữ liệu không gian địa lý.
+Các trang web di động và mạng xã hội.
+Phát triển yêu cầu dữ liệu.
+Mục tiêu không chặt chẽ – thiết kế có thể thay đổi theo thời gian.
+
+### Không tốt cho:
+
+Hệ thống giao dịch cao hoặc nơi mô hình dữ liệu được thiết kế trước.
+Hệ thống kết hợp chặt chẽ
+
+Vậy chúng ta cùng đi xây dựng úng dụng NestJs với mongodb nào
+
+## Install
+
+`npm i @nestjs/mongoose mongoose`
+
+## Sử dụng
+
+- `MongooseModule.forRoot` giống như `MongooseModule.connect`
+
+```TYPESCRIPT
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+
+@Module({
+  imports: [MongooseModule.forRoot('mongodb://localhost/nest')],
+})
+export class AppModule {}
+```
+
+### Model
+
+- Sử dụng `SchemaFactory.createForClass` để tạo schema
+
+```TYPESCRIPT
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { HydratedDocument } from 'mongoose';
+
+export type CatDocument = HydratedDocument<Cat>;
+
+@Schema()
+export class Cat {
+  @Prop()
+  name: string;
+
+  @Prop()
+  age: number;
+
+  @Prop()
+  breed: string;
+}
+
+export const CatSchema = SchemaFactory.createForClass(Cat);
+```
+
+`hoặc`
+
+```TYPESCRIPT
+export const CatSchema = new mongoose.Schema({
+  name: String,
+  age: Number,
+  breed: String,
+});
+```
+
+Nhưng đối với `@Props decorator` cung cấp 1 số validate
+
+- yêu cầu cung cấp đúng kiểu dữ liệu
+
+```TYPESCRIPT
+@Prop([String])
+tags: string[];
+```
+
+- require
+
+```TYPESCRIPT
+@Prop({ required: true })
+name: string;
+```
+
+- kế thừa các schema từ Owner
+
+```TYPESCRIPT
+import * as mongoose from 'mongoose';
+import { Owner } from '../owners/schemas/owner.schema';
+
+// inside the class definition
+@Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Owner' })
+owner: Owner;
+```
+
+`hoặc`
+
+```TYPESCRIPT
+@Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Owner' }] })
+owner: Owner[];
+```
+
+### cat.module.ts
+
+- `forFeature()` tạo đối tượng trong mongodb
+
+```TYPESCRIPT
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { CatsController } from './cats.controller';
+import { CatsService } from './cats.service';
+import { Cat, CatSchema } from './schemas/cat.schema';
+
+@Module({
+  imports: [MongooseModule.forFeature([{ name: Cat.name, schema: CatSchema }])],
+  controllers: [CatsController],
+  providers: [CatsService],
+})
+export class CatsModule {}
+```
+
+### cat.service.ts
+
+- `InjectModel` để kết nối tới instance cat trong mongo
+
+```TYPESCRIPT
+import { Model } from 'mongoose';
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Cat } from './schemas/cat.schema';
+import { CreateCatDto } from './dto/create-cat.dto';
+
+@Injectable()
+export class CatsService {
+  constructor(@InjectModel(Cat.name) private catModel: Model<Cat>) {}
+
+  async create(createCatDto: CreateCatDto): Promise<Cat> {
+    const createdCat = new this.catModel(createCatDto);
+    return createdCat.save();
+  }
+
+  async findAll(): Promise<Cat[]> {
+    return this.catModel.find().exec();
+  }
+}
+```
+
+## Multi database
+
+```TYPESCRIPT
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+
+@Module({
+  imports: [
+    MongooseModule.forRoot('mongodb://localhost/test', {
+      connectionName: 'cats',
+    }),
+    MongooseModule.forRoot('mongodb://localhost/users', {
+      connectionName: 'users',
+    }),
+  ],
+})
+export class AppModule {}
+```
