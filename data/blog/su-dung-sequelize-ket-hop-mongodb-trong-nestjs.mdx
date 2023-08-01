@@ -1,0 +1,176 @@
+---
+title: '08 Nest | sequelize kết hợp mongodb'
+thumnail: 'https://fastly.picsum.photos/id/28/4928/3264.jpg?hmac=GnYF-RnBUg44PFfU5pcw_Qs0ReOyStdnZ8MtQWJqTfA'
+date: 2023-08-01T12:32:14Z
+tags: ['nestjs']
+draft: false
+summary: 'Sử dụng Sequelize - Object Relational Mapper (ORM) kết hợp mongodb để tạo đối tượng User'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3, 4)} />
+
+Hôm trước mình có sử dụng TypeORM kết hợp với MySql: https://2eplusblog.vercel.app/blog/su-dung-typeorm-ket-noi-sql-trong-nestjs
+
+Sequelize tương tự như TypeOrm dùng để mapping các thực thể trong project xuống dưới database.
+
+## Install
+
+```BASH
+npm install --save sequelize sequelize-typescript mysql2
+npm install --save-dev @types/sequelize
+```
+
+## Config
+
+```TYPESCRIPT
+import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { UsersModule } from './users/users.module';
+
+@Module({
+  imports: [
+    SequelizeModule.forRoot({
+      dialect: 'mysql',
+      host: '127.0.0.1',
+      port: 3306,
+      username: 'root',
+      password: 'root',
+      database: 'test',
+      autoLoadModels: true,
+      synchronize: true,
+    }),
+    UsersModule, // <-----
+  ],
+})
+export class AppModule {}
+```
+
+## Sử dụng
+
+### create-user.dto.ts
+
+- giúp validate request trước khi request đi vào controller
+
+```TYPESCRIPT
+export class CreateUserDto {
+  firstName: string;
+  lastName: string;
+}
+```
+
+### user.entity.ts
+
+- giúp validate dữ liệu trước khi lưu vào database
+
+```TYPESCRIPT
+import { Column, Model, Table } from 'sequelize-typescript';
+
+@Table
+export class User extends Model {
+  @Column
+  firstName: string;
+
+  @Column
+  lastName: string;
+
+  @Column({ defaultValue: true })
+  isActive: boolean;
+}
+```
+
+### user.module.ts
+
+```TYPESCRIPT
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { CreateUserDto } from './dto/create-user.dto';
+import { User } from './models/user.model';
+import { UsersService } from './users.service';
+
+@Controller('users')
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  @Post()
+  create(@Body() createUserDto: CreateUserDto): Promise<User> { // <---- DTO được validate chỗ này trước nè nếu chuẩn với DTO thì truyền dữ liệu vào service
+    return this.usersService.create(createUserDto);
+  }
+
+  @Get()
+  findAll(): Promise<User[]> {
+    return this.usersService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string): Promise<User> {
+    return this.usersService.findOne(id);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string): Promise<void> {
+    return this.usersService.remove(id);
+  }
+}
+```
+
+### user.service.ts
+
+```TYPESCRIPT
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
+import { CreateUserDto } from './dto/create-user.dto';
+import { User } from './models/user.model';
+
+@Injectable()
+export class UsersService {
+  constructor(
+    @InjectModel(User) // <--- tiêm model User vào sequelize => mới validate được
+    private readonly userModel: typeof User,
+  ) {}
+
+  create(createUserDto: CreateUserDto): Promise<User> {
+    return this.userModel.create({
+      firstName: createUserDto.firstName,
+      lastName: createUserDto.lastName,
+    });
+  }
+
+  async findAll(): Promise<User[]> {
+    return this.userModel.findAll();
+  }
+
+  findOne(id: string): Promise<User> {
+    return this.userModel.findOne({
+      where: {
+        id,
+      },
+    });
+  }
+
+  async remove(id: string): Promise<void> {
+    const user = await this.findOne(id);
+    await user.destroy();
+  }
+}
+```
+
+### user.module.ts
+
+```TYPESCRIPT
+import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { User } from './models/user.model';
+import { UsersController } from './users.controller';
+import { UsersService } from './users.service';
+
+@Module({
+  imports: [SequelizeModule.forFeature([User])], // <---- sử dụng sequelize trong User instance
+  providers: [UsersService],
+  controllers: [UsersController],
+})
+export class UsersModule {}
+```
+
+Như vậy là chúng ta đã tích hợp sequelize kết hợp mysql vào trong project của chúng ta
