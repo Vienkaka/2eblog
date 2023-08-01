@@ -1,0 +1,196 @@
+---
+title: '08 Nest | Compile trong NestJS'
+thumnail: 'https://fastly.picsum.photos/id/1015/5000/3333.jpg?hmac=YiHIqvsVlhZoViBg5mG13IvI50oqAmgy79NY-PP_DEw'
+date: 2023-08-01T12:32:14Z
+tags: ['nestjs']
+draft: false
+summary: 'Vì sao NestJs cần phải compile? NestJs compile bằng gì? Chúng ta cùng tìm hiểu 2 công cụ giúp NestJS tăng hiệu năng phát triển dự án thông qua Webpack và ViteJs'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3, 4)} />
+
+## Vì sao NestJs cần phải compile?
+
+Vì NestJs được viết bằng Typescript nên cần phải có 1 công cụ chuyển đổi mã sang Javascript thì mới có thể chạy trên server. Thông qua 1 trong 2 công cụ Webpack hoặc ViteJs giúp NestJs compile nhanh chóng
+từ đó giúp giảm thời gian phát triển dự án, tăng hiệu suất hoạt động trên server và tối ưu hoá kích thước, giảm dung lượng file chứa trên server.
+
+## Webpack
+
+### Install
+
+```BASH
+npm i --save-dev webpack-node-externals run-script-webpack-plugin webpack
+```
+
+### webpack-hmr.config.js
+
+```TYPESCRIPT
+const nodeExternals = require('webpack-node-externals');
+const { RunScriptWebpackPlugin } = require('run-script-webpack-plugin');
+
+module.exports = function (options, webpack) {
+  return {
+    ...options,
+    entry: ['webpack/hot/poll?100', options.entry],
+    externals: [
+      nodeExternals({
+        allowlist: ['webpack/hot/poll?100'],
+      }),
+    ],
+    plugins: [
+      ...options.plugins,
+      new webpack.HotModuleReplacementPlugin(),
+      new webpack.WatchIgnorePlugin({
+        paths: [/\.js$/, /\.d\.ts$/],
+      }),
+      new RunScriptWebpackPlugin({ name: options.output.filename, autoRestart: false }),
+    ],
+  };
+};
+```
+
+### main.ts
+
+```TYPESCRIPT
+declare const module: any;
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3000);
+
+  if (module.hot) {
+    module.hot.accept();
+    module.hot.dispose(() => app.close());
+  }
+}
+bootstrap();
+```
+
+### run
+
+```JSON
+"start:dev": "nest build --webpack --webpackPath webpack-hmr.config.js --watch"
+```
+
+```BASH
+npm run start:dev
+```
+
+`Nếu bạn không sử dụng Nest CLI`
+
+### Install
+
+```BASH
+npm i --save-dev webpack webpack-cli webpack-node-externals ts-loader run-script-webpack-plugin
+```
+
+### Config
+
+```TYPESCRIPT
+const webpack = require('webpack');
+const path = require('path');
+const nodeExternals = require('webpack-node-externals');
+const { RunScriptWebpackPlugin } = require('run-script-webpack-plugin');
+
+module.exports = {
+  entry: ['webpack/hot/poll?100', './src/main.ts'],
+  target: 'node',
+  externals: [
+    nodeExternals({
+      allowlist: ['webpack/hot/poll?100'],
+    }),
+  ],
+  module: {
+    rules: [
+      {
+        test: /.tsx?$/,
+        use: 'ts-loader',
+        exclude: /node_modules/,
+      },
+    ],
+  },
+  mode: 'development',
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js'],
+  },
+  plugins: [
+    new webpack.HotModuleReplacementPlugin(),
+    new RunScriptWebpackPlugin({ name: 'server.js', autoRestart: false }),
+  ],
+  output: {
+    path: path.join(__dirname, 'dist'),
+    filename: 'server.js',
+  },
+};
+```
+
+### main.ts
+
+```TYPESCRIPT
+declare const module: any;
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3000);
+
+  if (module.hot) {
+    module.hot.accept();
+    module.hot.dispose(() => app.close());
+  }
+}
+bootstrap();
+```
+
+### run
+
+```JSON
+"start:dev": "webpack --config webpack.config.js --watch"
+```
+
+```BASH
+npm run start:dev
+```
+
+## ViteJs
+
+ViteJs cũng là 1 công cụ giúp compile nhanh và nhẹ, dễ dàng tích hợp vào NestJs.
+
+
+### Install
+
+```BASH
+npm i --save-dev vitest unplugin-swc @swc/core @vitest/coverage-c8
+```
+
+### vitest.config.ts
+
+```TYPESCRIPT
+import swc from 'unplugin-swc';
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    include: ['**/*.e2e-spec.ts'],
+    globals: true,
+    root: './',
+  },
+  plugins: [swc.vite()],
+});
+```
+
+### package.json
+
+```JSON
+{
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage",
+    "test:debug": "vitest --inspect-brk --inspect --logHeapUsage --threads=false",
+    "test:e2e": "vitest run --config ./vitest.config.e2e.ts"
+  }
+}
+```
