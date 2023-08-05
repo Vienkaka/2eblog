@@ -1,5 +1,5 @@
 ---
-name: 2EPlus
+name: 2E
 avatar: /static/images/avatar.png
 occupation:
 company:
