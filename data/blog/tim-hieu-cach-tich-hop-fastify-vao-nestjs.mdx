@@ -1,0 +1,111 @@
+---
+title: '10 Nest | Tích hợp Fastify vào NestJs'
+thumnail: 'https://fastly.picsum.photos/id/966/5000/3333.jpg?hmac=FUZQnlLK6DBaP9auRn7wHHNupXl3TeQu-DqGl1HsC00'
+date: 2023-08-06T12:32:14Z
+tags: ['nestjs']
+draft: false
+summary: 'Vì sao NestJs lại có thể tích hợp Fastify nhỉ, để làm gì đây? Tìm hiểu cùng mình nhá'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} toHeading={(2, 3, 4)} />
+
+## Fastify là gì?
+
+Fastify là một framework javascript phía máy chủ tối giản, tập trung lớn vào trải nghiệm của nhà phát triển và hiệu suất ứng dụng. Nó được lấy cảm hứng từ Express.js và Hapi.
+
+## Vì sao phải tích hợp Fastify
+
+Việc tích hợp Fastify vào NestJS có thể mang lại một số lợi ích như sau:
+
+1. `Hiệu suất tốt hơn`: Fastify được thiết kế để cung cấp hiệu suất cao và tiêu thụ ít tài nguyên hơn so với một số framework HTTP khác như Express. Điều này có thể giúp ứng dụng của bạn xử lý nhiều yêu cầu cùng lúc mà vẫn duy trì hiệu suất tốt.
+
+2. `Tiết kiệm tài nguyên`: Fastify sử dụng ít tài nguyên hệ thống hơn, giúp tiết kiệm bộ nhớ và CPU. Điều này đặc biệt hữu ích khi bạn cần xử lý nhiều yêu cầu cùng lúc.
+
+3. `Validation và serialization`: Fastify đi kèm với cơ chế validation dữ liệu và serialization mạnh mẽ. NestJS tích hợp sẵn các tính năng này để giúp bạn kiểm tra và xử lý dữ liệu đầu vào một cách dễ dàng và an toàn.
+
+4. `Middlewares`: Fastify hỗ trợ việc sử dụng các middlewares để mở rộng chức năng của ứng dụng. NestJS cho phép bạn sử dụng các middlewares Fastify hoặc thậm chí tạo các middleware tuỳ chỉnh để mở rộng tính năng của ứng dụng.
+
+5. `Plugin và decorator`: NestJS cung cấp các decorator và plugin cho Fastify để giúp bạn xây dựng ứng dụng dễ dàng hơn và duyệt một số vấn đề liên quan đến việc xử lý yêu cầu.
+
+Cùng nhau tìm hiểu cách tích hợp Fastify nào!
+
+## Tích hợp Fastify
+
+### Install
+
+```BASH
+npm i --save @nestjs/platform-fastify
+```
+
+```TYPESCRIPT:main.js
+import { NestFactory } from '@nestjs/core';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter()
+  );
+  await app.listen(3000);
+}
+bootstrap();
+```
+
+Mặc định thì Fastify sẽ chạy `localhost 127.0.0.1` để config thêm thì:
+
+```TYPESCRIPT
+async function bootstrap() {
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter(),
+  );
+  await app.listen(3000, '0.0.0.0');
+}
+```
+
+### Redirect response
+
+Trong Fastify phần Redirect có khác so với Express
+
+```TYPESCRIPT
+@Get()
+index(@Res() res) {
+  res.status(302).redirect('/login');
+}
+```
+
+### Middlewares
+
+```TYPESCRIPT:logger.middleware.ts
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { FastifyRequest, FastifyReply } from 'fastify';
+
+@Injectable()
+export class LoggerMiddleware implements NestMiddleware {
+  use(req: FastifyRequest['raw'], res: FastifyReply['raw'], next: () => void) {
+    console.log('Request...');
+    next();
+  }
+}
+```
+
+## Bất lợi
+
+Mặc dù việc tích hợp Fastify vào NestJS có nhiều lợi ích, nhưng cũng có một số bất lợi và hạn chế mà bạn cần xem xét:
+
+1. `Khả năng tương thích`: Mặc dù Fastify được thiết kế để tối ưu hóa hiệu suất và tiêu thụ tài nguyên, nhưng không phải tất cả các thư viện và middlewares của Node.js đều tương thích hoàn toàn với Fastify. Điều này có thể gây ra vấn đề khi bạn cố gắng tích hợp một số thư viện hoặc plugins phức tạp.
+
+2. `Thư viện bên ngoài`: Một số thư viện bên ngoài có thể được thiết kế dựa trên Express và không hỗ trợ Fastify. Khi bạn tích hợp Fastify vào NestJS, bạn có thể gặp khó khăn khi sử dụng các thư viện này hoặc phải tạo các cách thức tuỳ chỉnh để tích hợp chúng.
+
+3. `Học hỏi và cộng đồng`: Express là một trong những framework phổ biến và có cộng đồng lớn, do đó có nhiều tài liệu và hỗ trợ trực tuyến. Trong khi đó, Fastify có một cộng đồng nhỏ hơn và ít tài liệu hơn. Điều này có thể làm cho việc học hỏi và tìm kiếm giải pháp khó khăn hơn.
+
+4. `Phát triển và bảo trì`: Mặc dù Fastify giúp cải thiện hiệu suất và tối ưu hóa tài nguyên, nhưng việc phát triển và bảo trì ứng dụng với Fastify cũng có thể phức tạp hơn so với Express. Nhất là đối với những người mới bắt đầu hoặc không quen với Fastify.
+
+5. `Phù hợp với dự án cụ thể`: Việc tích hợp Fastify vào NestJS không phải lúc nào cũng phù hợp cho mọi dự án. Nếu dự án của bạn không yêu cầu mức hiệu suất cực cao hoặc không đối diện với vấn đề về tài nguyên, việc sử dụng Fastify có thể không mang lại nhiều lợi ích thực sự.
