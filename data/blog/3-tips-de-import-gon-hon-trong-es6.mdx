@@ -19,7 +19,7 @@ canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-
 Trong các dự án Javascript thường các bạn thường thì sử dụng tới đâu import đến đấy phải không?
 ![](https://images.viblo.asia/2c542a3e-0a98-4598-80c7-09b6cf466270.png)
 Hoặc nếu rõ ràng hơn thì chia những dòng import theo định nghĩa hoặc chức năng khác nhau
-![Screen Shot 2023-01-31 at 21.06.15.png](https://images.viblo.asia/97f803d1-229a-43ae-84fd-14e9cd4c2b2d.png)
+![](https://images.viblo.asia/97f803d1-229a-43ae-84fd-14e9cd4c2b2d.png)
 Với ví dụ trên thì chỉ có vài dòng nhưng nếu sử dụng nhiều functions, biến hoặc các components từ các folder khác thì chỉ với những dòng import đã lên tới hơn 50 dòng
 Để khắc phục vấn đề này thì hôm nay mình chia sẻ cho các bạn 1 vài mẹo để những dòng import trông gọn gàng và sạch hơn
 
@@ -29,9 +29,9 @@ Với ví dụ trên thì chỉ có vài dòng nhưng nếu sử dụng nhiều 
 Là việc gôm nhóm nhiều components riêng lẻ (A, B, C, D,...) trong 1 file duy nhất One, nên chỉ cần import tới file One rồi gọi các components khác ra mà sử dụng thôi
 
 - Tạo 1 file index.js trong folder columns
-  ![Screen Shot 2023-01-31 at 21.24.00.png](https://images.viblo.asia/143abd11-945f-4948-b68d-b320c0a81d53.png)
+  ![](https://images.viblo.asia/143abd11-945f-4948-b68d-b320c0a81d53.png)
 - Sử dụng componenet trong các file khác
-  ![Screen Shot 2023-01-31 at 21.26.18.png](https://images.viblo.asia/e60f3426-ef81-47f3-9b52-718d57054229.png)
+  ![](https://images.viblo.asia/e60f3426-ef81-47f3-9b52-718d57054229.png)
   Như vậy chỉ với 1 file tổng hợp duy nhất thì các file sử dụng components có thể import ngắn gọn hơn hẳn
   **Sử dụng aliases**
   Như hình ở đầu bài thì sau mỗi from thì có rất nhiều dấu . và dấu / nhìn rất rối mắt. Như v thì cần phải setup alias, alias có những lợi ích:
@@ -41,14 +41,14 @@ Là việc gôm nhóm nhiều components riêng lẻ (A, B, C, D,...) trong 1 fi
   Có 2 kiểu không sử dụng Typscript và sử dụng Typescript
   **Không sử dụng Typescript**
   Tạo file babel.config.js và thêm những dòng này vào
-  ![Screen Shot 2023-01-31 at 21.41.10.png](https://images.viblo.asia/b3dd6e94-d20f-4cc4-b7a5-33e027404b0b.png)
+  ![](https://images.viblo.asia/b3dd6e94-d20f-4cc4-b7a5-33e027404b0b.png)
   **Sử dụng Typescript**
   ![](https://images.viblo.asia/1fd1d088-aeff-40ef-afb4-cece0ce84bfa.png)
   **Sử dụng thư viện**
   Prettier plugin sort imports: https://github.com/trivago/prettier-plugin-sort-imports
   Nó sẽ chuyển:
-  ![Screen Shot 2023-01-31 at 21.54.16.png](https://images.viblo.asia/22c983c0-d2bb-4c4b-b2e7-7ed9a52c97ca.png)
+  ![](https://images.viblo.asia/22c983c0-d2bb-4c4b-b2e7-7ed9a52c97ca.png)
   Thành
-  ![Screen Shot 2023-01-31 at 21.54.46.png](https://images.viblo.asia/6fd4e3c8-e81c-4b2d-b9c7-d1cb2facc621.png)
+  ![](https://images.viblo.asia/6fd4e3c8-e81c-4b2d-b9c7-d1cb2facc621.png)
 
 Với 3 mẹo trên thì những dòng import của ae sẽ trở nên đẹp và gọn hơn rất nhiều. Và cuối cùng là chúc ae năm mới thật nhiều thành công nhá.
