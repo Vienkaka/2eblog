@@ -23,6 +23,11 @@ img[alt='post-50'] {
   margin-left: 25%;
 }
 
+img[alt='post-25'] {
+  width: 25%;
+  margin-left: 38%;
+}
+
 img[alt=''] {
   width: 100%;
 }

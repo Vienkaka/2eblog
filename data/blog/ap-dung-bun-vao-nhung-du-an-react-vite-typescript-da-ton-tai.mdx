@@ -1,0 +1,102 @@
+---
+title: 'Áp dụng bun vào những dự án react typescript sử dụng vite đã có sẳn'
+thumnail: 'https://fastly.picsum.photos/id/55/4608/3072.jpg?hmac=ahGhylwdN52ULB37deeMZX6T_G7NiERtoPhwydMvUKQ'
+date: 2023-12-03T20:32:14Z
+tags: ['react', 'bun']
+draft: false
+summary: 'Trong thời gian vừa qua thì cộng đồng js rất nóng vì  có 1 công cụ hỗ trợ javascript chạy rất nhanh hỗ trợ run, test, bundle cho các dự án javasript và typescript với khẩu hiệu là all with Bun'
+layout: PostSimple
+bibliography: references-data.bib
+canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+---
+
+<TOCInline toc={props.toc} exclude="" toHeading={2} />
+
+Dựa vào những lời khen ngợi của cộng đồng mạng cũng như giới thiệu của `bun` trong trang chủ thì mình quyết định áp dụng nó vào các dự án react của mình.
+Dự án của mình thì sử dụng typescript và vite nên mình thử xem `bun` có thể giúp được gì sau khi chuyển đổi. Hãy cùng mình đi đến cuối bài viết kiểm tran kết quả nhá.
+Còn bây giờ thì mình phải tìm hiểu `bun` là gì?
+
+![post-25](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/post/bun)
+
+## bun là gì?
+
+Bun là 1 công cụ javascript rất nhanh, bun giúp phát triển, thử nghiệm, chạy và đóng gói các dự án JavaScript & TypeScript—tất cả đều có Bun. Bun là bộ công cụ & thời gian chạy JavaScript tất cả trong một được thiết kế để đảm bảo tốc độ, hoàn chỉnh với trình đóng gói, trình chạy thử nghiệm và trình quản lý gói tương thích với Node.js.
+Bun là javascript runtime để phục vụ cho hệ sinh thái javascript:
+
+- bun start và run rất nhanh. nó được mở rộng từ JavascriptCore
+- bun cung cấp hộ api tối ưu hoá cao
+- bun là 1 bộ xây dựng ứng dụng javascript bao gồm đóng gói, run, test và bundler
+
+## Sử dụng bun trong dự án
+
+### Chạy project
+
+**Cũ**
+
+```BASH
+vite
+```
+
+`VITE v4.5.0  ready in 136 ms`
+
+**Mới**
+Thay vì dự án của chúng ta chạy trong nền nodejs thì sẽ chạy trong nền bun
+
+```BASH
+bun vite
+```
+
+`VITE v4.5.0  ready in 174 ms`
+
+Kể cả run theo cách cũ hay mới thì vẫn giao động từ 100ms đến 200ms. Căn bản là run theo cơ chế của `vitejs` nên không có sự khác nhau.
+
+### Install package
+
+Bun CLI chứa trình quản lý gói tương thích với Node.js được thiết kế để thay thế nhanh hơn đáng kể cho npm, sợi và pnpm. Đó là một công cụ độc lập sẽ hoạt động trong các dự án Node.js có sẵn; nếu dự án của bạn có package.json, cài đặt bun có thể giúp bạn tăng tốc quy trình làm việc.
+Theo như công bố của bun thì tốc độ tải package của bun nhanh hơn 25 lần so với npm
+
+![](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/post/bun-install)
+
+Trong dự án của mình sử dụng yarn nên mình sẽ test thử.
+
+**yarn**
+![post-50](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/post/yarn-install)
+
+**bun install**
+![post-50](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/post/bun-install-script)
+
+Trong những điều kiện mạng khác nhau thì tốc độ tải khác nhau nhưng lúc nào `bun install` cũng `nhanh hơn 2 lần` so với `yarn`
+
+### Build
+
+Theo như bun đưa ra thì:
+
+![post-50](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/post/bun-build-compare?t=2023-12-03T09%3A03%3A14.463Z)
+
+Vì dự án sử dụng vite nên sử dụng `bunx --bun vite build` để build
+Như đoạn bash trên thì bun vẫn sử dụng cơ chế build của vite là esbuild nên thời gian build vẫn không có sự khác biệt với `vite build`
+
+Hẹn các bạn ở những dự án build bằng webpack vậy.
+
+Như vậy thì khi áp dụng bun vào dự án react,vite, typescript đã có sẳn thì tối ưu được thời gian install, nhưng việc install toàn bộ package trong 1 dự án là ít khi sảy ra.
+Vì vậy việc áp dụng bun vào là chưa cần thiết.
+
+## Bonus - Thêm bun vào `CI/CD`
+
+Dự án mình sử dụng gitlab là nơi chứa repo nên mình sẽ sử dụng `bun docker` trong CI/CD xem bun có chạy ổn áp không nhá.
+
+```BASH
+FROM oven/bun:1 as build
+
+# Specify where our app will live in the container
+WORKDIR /app
+COPY package.json ./
+COPY bun.lockb ./
+COPY . /app/
+
+RUN bun install
+RUN bun vite build
+```
+
+- sử dụng image `oven/bun:1`
+- `bun install` sẽ sử dụng file `bun.lockb` để cache lại các version package cần tải
