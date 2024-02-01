@@ -1,11 +1,11 @@
 const siteMetadata = {
-  title: 'BLOG của 2E',
-  author: '2E',
-  headerTitle: '2E',
+  title: 'BLOG của Gaoden',
+  author: 'Gaoden',
+  headerTitle: 'Gaoden',
   description: 'Chia sẻ là một cách để học hỏi, hy vọng sẽ nhận lại chia sẻ từ các bạn',
   language: 'vi-VN',
   theme: 'system', // system, dark or light
-  siteUrl: 'https://2eblog.vercel.app/',
+  siteUrl: 'https://gaoden.vercel.app/',
   siteRepo: 'https://gitlab.com/ngovanvien1010/tailwind-css-starter-blog',
   siteLogo: '/static/images/logo.png',
   image: '/static/images/avatar.png',

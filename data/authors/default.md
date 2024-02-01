@@ -1,5 +1,5 @@
 ---
-name: 2E
+name: Gaoden
 avatar: /static/images/avatar.png
 occupation:
 company:
