@@ -21,7 +21,7 @@ Biến được khai báo trừu tượng trong Postman, thông qua `{{ten_bien}
 - Environment variables: cho phép bạn mở rộng phạm vi công việc của mình sang các môi trường khác nhau, ví dụ như phát triển cục bộ so với thử nghiệm hoặc sản xuất. Một môi trường có thể hoạt động tại một thời điểm. Nếu bạn có một môi trường duy nhất, việc sử dụng các biến bộ sưu tập có thể hiệu quả hơn, nhưng các môi trường cho phép bạn chỉ định các cấp độ truy cập dựa trên vai trò.
 - Data variables: đến từ các tệp CSV và JSON bên ngoài để xác định các tập dữ liệu mà bạn có thể sử dụng khi chạy các bộ sưu tập với Newman hoặc Trình chạy bộ sưu tập. Các biến dữ liệu có các giá trị hiện tại, không tồn tại ngoài các lần chạy yêu cầu hoặc bộ sưu tập.
 - Local variables: là các biến tạm thời được truy cập trong tập lệnh yêu cầu của bạn. Các giá trị biến cục bộ nằm trong phạm vi một lần chạy yêu cầu hoặc bộ sưu tập và không còn khả dụng khi quá trình chạy hoàn tất. Các biến cục bộ phù hợp nếu bạn cần một giá trị để ghi đè lên tất cả các phạm vi biến khác nhưng không muốn giá trị đó tồn tại sau khi quá trình thực thi kết thúc.
-  ![Khai báo biến](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v…ostman-variables-scope)
+  ![Khai báo biến](https://hksbjaideaoctdqnkzug.supabase.co/storage/v…ostman-variables-scope)
 
 ## Biến
 
@@ -33,7 +33,7 @@ Biến được khai báo trừu tượng trong Postman, thông qua `{{ten_bien}
 ### Khai báo biến
 
 - Trên UI
-  ![Khai báo biến](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/post/postman-khai-bao-bien)
+  ![Khai báo biến](https://hksbjaideaoctdqnkzug.supabase.co/storage/v1/object/public/post/postman-khai-bao-bien)
   Để khai báo biến global thì chỉ cần add ten_bien: giá trị của biến, nhưng đối với biến môi trường khi nhấn Add thì Postman sẽ tạo 1 file chứa tên của File môi trường với các biến trong file đó, trong trường hợp trên là file Dự án A.
 - Thông qua script
 
@@ -53,7 +53,7 @@ pm.environment.unset('variable_key')
 ### Sử dụng biến
 
 - Trên UI
-  ![Lay bien](https://xlafgkujgoaelkhxzzpo.supabase.co/storage/v1/object/public/post/postman-lay-gia-tri-bien)
+  ![Lay bien](https://hksbjaideaoctdqnkzug.supabase.co/storage/v1/object/public/post/postman-lay-gia-tri-bien)
   Sử dụng `{{ten_bien}}` để lấy biến môi trường. Postman sẽ show giá trị của biến khi trỏ chuột vào biến đó, nếu biến không có giá trị thì màu của biến sẽ có màu đỏ
 
 - Thông qua script
