@@ -1,13 +1,18 @@
 ---
 title: '06 Nest | TypeORM kết nối SQL trong NestJs'
 thumnail: 'https://fastly.picsum.photos/id/28/4928/3264.jpg?hmac=GnYF-RnBUg44PFfU5pcw_Qs0ReOyStdnZ8MtQWJqTfA'
-date: 2023-07-23T12:32:14Z
-tags: ['nestjs']
+date: '2023-07-23'
+lastmod: '2023-07-23'
+tags: ['nestjs', 'typeorm', 'sql', 'database', 'orm', 'backend']
 draft: false
 summary: 'Hôm nay mình sẽ tạo project sử dụng typeORM kết nối SQL nhá'
-layout: PostSimple
-bibliography: references-data.bib
-canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+images:
+  [
+    'https://fastly.picsum.photos/id/28/4928/3264.jpg?hmac=GnYF-RnBUg44PFfU5pcw_Qs0ReOyStdnZ8MtQWJqTfA',
+  ]
+authors: ['default']
+layout: PostLayout
+canonicalUrl: https://gaoden.vercel.app/blog/su-dung-typeorm-ket-noi-sql-trong-nestjs
 ---
 
 <TOCInline toc={props.toc} toHeading={(2, 3, 4)} />
@@ -15,7 +20,7 @@ canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-
 ### TypeORM
 
 - TypeORM là ORM (Object-Relational mapping) tạo dựng khung xương(Shema) giúp kết nối NestJs với cơ sở dữ liệu.
-Chi tiết: https://typeorm.io/
+  Chi tiết: https://typeorm.io/
 
 - Sql: là cơ sở dữ liệu
 
@@ -69,7 +74,9 @@ export class User {
 }
 ```
 
-- import entity
+- import entit
+
+  y
 
 ```TYPESCRIPT
 import { Module } from '@nestjs/common';
@@ -197,7 +204,7 @@ export const UserSchema = new EntitySchema<User>({
 
 - Cập nhật module
 
-```TYPESCRIPT   
+```TYPESCRIPT
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserSchema } from './user.schema';
