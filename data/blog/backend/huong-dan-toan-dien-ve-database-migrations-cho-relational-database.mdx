@@ -1,0 +1,539 @@
+---
+title: 'Migrations | 3. Hướng dẫn toàn diện về Database Migrations cho Relational Database'
+thumnail: 'https://fastly.picsum.photos/id/193/3578/2451.jpg?hmac=M5yoazhwdwMa_27rC5-S50SNFvCy4Kni0wXoa6iVF0g'
+date: '2025-10-21'
+lastmod: '2025-10-21'
+tags: ['database', 'migration', 'backend', 'devops', 'relational-database', 'sql']
+draft: false
+summary: 'Hướng dẫn chi tiết về database migrations cho relational database, từ cơ bản đến nâng cao, bao gồm best practices, tools và real-world scenarios.'
+images:
+  [
+    'https://fastly.picsum.photos/id/193/3578/2451.jpg?hmac=M5yoazhwdwMa_27rC5-S50SNFvCy4Kni0wXoa6iVF0g',
+  ]
+authors: ['default']
+layout: PostLayout
+canonicalUrl: https://gaoden.vercel.app/blog/backend/huong-dan-toan-dien-ve-database-migrations-cho-relational-database
+---
+
+## Giới thiệu
+
+Database migrations là một phần quan trọng trong quá trình phát triển ứng dụng, đặc biệt là với relational database. Trong bài viết này, chúng ta sẽ tìm hiểu một cách toàn diện về database migrations, từ những khái niệm cơ bản đến các kỹ thuật nâng cao và best practices trong thực tế.
+
+## Database Migration là gì?
+
+**Database migration** là quá trình quản lý và áp dụng các thay đổi cấu trúc cơ sở dữ liệu một cách có kiểm soát và có thể lặp lại. Nó bao gồm:
+
+- **Schema changes**: Thay đổi cấu trúc bảng, cột, index
+- **Data transformations**: Chuyển đổi dữ liệu hiện có
+- **Version control**: Theo dõi và quản lý các phiên bản database
+- **Environment consistency**: Đảm bảo tính nhất quán giữa các môi trường
+
+## Tại sao Database Migration quan trọng?
+
+### 1. **Version Control cho Database**
+
+Giống như source code, database cũng cần được quản lý phiên bản:
+
+```sql
+-- Migration: 001_create_users_table.sql
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_username ON users(username);
+```
+
+### 2. **Team Collaboration**
+
+Khi nhiều developer làm việc cùng nhau:
+
+```sql
+-- Migration: 002_add_user_profile.sql
+ALTER TABLE users ADD COLUMN first_name VARCHAR(50);
+ALTER TABLE users ADD COLUMN last_name VARCHAR(50);
+ALTER TABLE users ADD COLUMN phone VARCHAR(20);
+ALTER TABLE users ADD COLUMN date_of_birth DATE;
+```
+
+### 3. **Environment Consistency**
+
+Đảm bảo database giống nhau trên tất cả môi trường:
+
+```sql
+-- Migration: 003_create_orders_table.sql
+CREATE TABLE orders (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    order_number VARCHAR(50) UNIQUE NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## Các loại Database Migration
+
+### 1. **Schema Migrations**
+
+Thay đổi cấu trúc database:
+
+```sql
+-- Thêm bảng mới
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    category_id INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Thêm foreign key
+ALTER TABLE products
+ADD CONSTRAINT fk_products_category
+FOREIGN KEY (category_id) REFERENCES categories(id);
+```
+
+### 2. **Data Migrations**
+
+Chuyển đổi dữ liệu hiện có:
+
+```sql
+-- Cập nhật dữ liệu
+UPDATE users
+SET status = 'active'
+WHERE status IS NULL;
+
+-- Chuyển đổi dữ liệu
+UPDATE products
+SET price = price * 1.1
+WHERE category_id = 1;
+
+-- Di chuyển dữ liệu
+INSERT INTO user_profiles (user_id, bio, avatar_url)
+SELECT id, '', '' FROM users
+WHERE id NOT IN (SELECT user_id FROM user_profiles);
+```
+
+### 3. **Index Migrations**
+
+Tối ưu hóa performance:
+
+```sql
+-- Tạo index
+CREATE INDEX idx_orders_user_id ON orders(user_id);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_created_at ON orders(created_at);
+
+-- Composite index
+CREATE INDEX idx_orders_user_status ON orders(user_id, status);
+```
+
+## Migration Tools và Frameworks
+
+### 1. **Flyway**
+
+Công cụ migration phổ biến với Java ecosystem:
+
+```xml
+<!-- flyway.conf -->
+flyway.url=jdbc:postgresql://localhost:5432/mydb
+flyway.user=myuser
+flyway.password=mypassword
+flyway.locations=filesystem:db/migration
+flyway.baselineOnMigrate=true
+flyway.validateOnMigrate=true
+```
+
+```sql
+-- V1__Create_users_table.sql
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 2. **Liquibase**
+
+Hỗ trợ nhiều format (XML, YAML, JSON):
+
+```xml
+<!-- changelog.xml -->
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="1" author="developer">
+        <createTable tableName="users">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="username" type="varchar(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="email" type="varchar(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="2" author="developer">
+        <addColumn tableName="users">
+            <column name="phone" type="varchar(20)"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>
+```
+
+### 3. **Sequelize (Node.js)**
+
+ORM với migration support:
+
+```javascript
+// migrations/20240120000001-create-users.js
+'use strict'
+
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    await queryInterface.createTable('users', {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: Sequelize.INTEGER,
+      },
+      username: {
+        type: Sequelize.STRING,
+        allowNull: false,
+        unique: true,
+      },
+      email: {
+        type: Sequelize.STRING,
+        allowNull: false,
+        unique: true,
+      },
+      passwordHash: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      createdAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+      },
+      updatedAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+      },
+    })
+  },
+
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.dropTable('users')
+  },
+}
+```
+
+### 4. **Django Migrations (Python)**
+
+Tích hợp sẵn với Django:
+
+```python
+# models.py
+from django.db import models
+
+class User(models.Model):
+    username = models.CharField(max_length=50, unique=True)
+    email = models.EmailField(unique=True)
+    password_hash = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'users'
+```
+
+```python
+# migrations/0001_initial.py
+from django.db import migrations, models
+
+class Migration(migrations.Migration):
+    initial = True
+    dependencies = []
+
+    operations = [
+        migrations.CreateModel(
+            name='User',
+            fields=[
+                ('id', models.AutoField(primary_key=True, serialize=False)),
+                ('username', models.CharField(max_length=50, unique=True)),
+                ('email', models.EmailField(max_length=100, unique=True)),
+                ('password_hash', models.CharField(max_length=255)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+            ],
+            options={
+                'db_table': 'users',
+            },
+        ),
+    ]
+```
+
+## Advanced Migration Patterns
+
+### 1. **Zero-Downtime Migrations**
+
+Thực hiện migration mà không làm gián đoạn service:
+
+```sql
+-- Bước 1: Thêm cột mới (nullable)
+ALTER TABLE users ADD COLUMN new_email VARCHAR(100);
+
+-- Bước 2: Populate dữ liệu
+UPDATE users SET new_email = email;
+
+-- Bước 3: Thêm constraint
+ALTER TABLE users ALTER COLUMN new_email SET NOT NULL;
+
+-- Bước 4: Drop cột cũ (trong migration khác)
+-- ALTER TABLE users DROP COLUMN email;
+-- ALTER TABLE users RENAME COLUMN new_email TO email;
+```
+
+### 2. **Blue-Green Deployments**
+
+```sql
+-- Blue environment
+CREATE TABLE users_v2 (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    -- new fields
+    first_name VARCHAR(50),
+    last_name VARCHAR(50)
+);
+
+-- Migrate data
+INSERT INTO users_v2 (id, username, email, first_name, last_name)
+SELECT id, username, email,
+       SPLIT_PART(full_name, ' ', 1) as first_name,
+       SPLIT_PART(full_name, ' ', 2) as last_name
+FROM users;
+```
+
+### 3. **Rollback Strategies**
+
+```sql
+-- Migration với rollback
+-- UP migration
+CREATE TABLE audit_logs (
+    id SERIAL PRIMARY KEY,
+    table_name VARCHAR(50) NOT NULL,
+    record_id INTEGER NOT NULL,
+    action VARCHAR(20) NOT NULL,
+    old_values JSONB,
+    new_values JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- DOWN migration
+DROP TABLE audit_logs;
+```
+
+## Best Practices
+
+### 1. **Naming Conventions**
+
+```
+20240120_001_create_users_table.sql
+20240120_002_add_phone_to_users.sql
+20240120_003_create_orders_table.sql
+20240120_004_add_indexes_to_orders.sql
+```
+
+### 2. **Atomic Operations**
+
+```sql
+BEGIN;
+-- Migration commands
+ALTER TABLE users ADD COLUMN phone VARCHAR(20);
+CREATE INDEX idx_users_phone ON users(phone);
+COMMIT;
+```
+
+### 3. **Data Validation**
+
+```sql
+-- Validate data before migration
+SELECT COUNT(*) FROM users WHERE email IS NULL;
+-- Should return 0
+
+-- Validate after migration
+SELECT COUNT(*) FROM users WHERE phone IS NULL;
+-- Expected result
+```
+
+### 4. **Performance Considerations**
+
+```sql
+-- Thêm index sau khi thêm dữ liệu
+ALTER TABLE large_table ADD COLUMN new_column VARCHAR(100);
+-- Populate data
+UPDATE large_table SET new_column = 'default_value';
+-- Thêm index
+CREATE INDEX idx_large_table_new_column ON large_table(new_column);
+```
+
+### 5. **Testing Migrations**
+
+```sql
+-- Test migration trên copy của production data
+CREATE DATABASE test_migration_db;
+\c test_migration_db;
+-- Restore production backup
+-- Run migration
+-- Validate results
+```
+
+## Common Pitfalls và Solutions
+
+### 1. **Locking Issues**
+
+```sql
+-- ❌ Bad: Long-running migration
+ALTER TABLE large_table ADD COLUMN new_field VARCHAR(100);
+UPDATE large_table SET new_field = 'default';
+
+-- ✅ Good: Chunked updates
+ALTER TABLE large_table ADD COLUMN new_field VARCHAR(100);
+UPDATE large_table SET new_field = 'default' WHERE id BETWEEN 1 AND 10000;
+UPDATE large_table SET new_field = 'default' WHERE id BETWEEN 10001 AND 20000;
+-- Continue in chunks
+```
+
+### 2. **Foreign Key Constraints**
+
+```sql
+-- ❌ Bad: Drop constraint without checking
+ALTER TABLE orders DROP CONSTRAINT fk_orders_user;
+
+-- ✅ Good: Check dependencies first
+SELECT COUNT(*) FROM orders WHERE user_id NOT IN (SELECT id FROM users);
+-- Should return 0
+ALTER TABLE orders DROP CONSTRAINT fk_orders_user;
+```
+
+### 3. **Data Type Changes**
+
+```sql
+-- ❌ Bad: Direct type change
+ALTER TABLE users ALTER COLUMN age TYPE INTEGER;
+
+-- ✅ Good: Safe type conversion
+ALTER TABLE users ADD COLUMN age_new INTEGER;
+UPDATE users SET age_new = age::INTEGER WHERE age ~ '^[0-9]+$';
+ALTER TABLE users DROP COLUMN age;
+ALTER TABLE users RENAME COLUMN age_new TO age;
+```
+
+## Monitoring và Troubleshooting
+
+### 1. **Migration Status Tracking**
+
+```sql
+-- Tạo bảng tracking
+CREATE TABLE migration_history (
+    id SERIAL PRIMARY KEY,
+    migration_name VARCHAR(255) NOT NULL,
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'success',
+    error_message TEXT
+);
+```
+
+### 2. **Performance Monitoring**
+
+```sql
+-- Monitor long-running migrations
+SELECT
+    pid,
+    now() - pg_stat_activity.query_start AS duration,
+    query
+FROM pg_stat_activity
+WHERE (now() - pg_stat_activity.query_start) > interval '5 minutes';
+```
+
+### 3. **Rollback Procedures**
+
+```sql
+-- Emergency rollback
+BEGIN;
+-- Revert changes
+ALTER TABLE users DROP COLUMN phone;
+DROP INDEX IF EXISTS idx_users_phone;
+COMMIT;
+```
+
+## Real-world Scenarios
+
+### 1. **E-commerce Platform Migration**
+
+```sql
+-- Scenario: Thêm multi-currency support
+-- Bước 1: Thêm currency columns
+ALTER TABLE products ADD COLUMN base_currency VARCHAR(3) DEFAULT 'USD';
+ALTER TABLE products ADD COLUMN price_usd DECIMAL(10,2);
+ALTER TABLE products ADD COLUMN price_eur DECIMAL(10,2);
+ALTER TABLE products ADD COLUMN price_gbp DECIMAL(10,2);
+
+-- Bước 2: Migrate existing data
+UPDATE products SET price_usd = price WHERE base_currency = 'USD';
+-- Calculate other currencies based on exchange rates
+```
+
+### 2. **User Authentication Upgrade**
+
+```sql
+-- Scenario: Upgrade từ basic auth sang OAuth
+-- Bước 1: Thêm OAuth columns
+ALTER TABLE users ADD COLUMN oauth_provider VARCHAR(50);
+ALTER TABLE users ADD COLUMN oauth_id VARCHAR(100);
+ALTER TABLE users ADD COLUMN access_token TEXT;
+ALTER TABLE users ADD COLUMN refresh_token TEXT;
+
+-- Bước 2: Migrate existing users
+UPDATE users SET
+    oauth_provider = 'legacy',
+    oauth_id = id::TEXT
+WHERE oauth_provider IS NULL;
+```
+
+## Kết luận
+
+Database migrations là một kỹ năng quan trọng cho backend developers. Việc hiểu và áp dụng đúng các patterns và best practices sẽ giúp:
+
+- **Đảm bảo tính nhất quán** giữa các môi trường
+- **Giảm thiểu rủi ro** khi deploy changes
+- **Hỗ trợ team collaboration** hiệu quả
+- **Tăng cường reliability** của hệ thống
+
+Những kiến thức trong bài viết này sẽ giúp bạn xây dựng một migration strategy vững chắc cho dự án của mình.
+
+Bạn có kinh nghiệm gì về database migrations không? Hãy chia sẻ trong phần comment nhé!
+
+## Tài liệu tham khảo
+
+- [Flyway Documentation](https://flywaydb.org/documentation/)
+- [Liquibase Documentation](https://docs.liquibase.com/)
+- [Sequelize Migrations](https://sequelize.org/docs/v6/other-topics/migrations/)
+- [Django Migrations](https://docs.djangoproject.com/en/stable/topics/migrations/)
+- [PostgreSQL Migration Best Practices](https://www.postgresql.org/docs/current/ddl-alter.html)
