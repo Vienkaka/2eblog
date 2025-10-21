@@ -1,17 +1,25 @@
 ---
 title: '05 Nest | gRPC trong NestJs Microservices'
 thumnail: 'https://fastly.picsum.photos/id/74/4288/2848.jpg?hmac=q02MzzHG23nkhJYRXR-_RgKTr6fpfwRgcXgE0EKvNB8'
-date: 2023-07-22T12:32:14Z
-tags: ['nestjs']
+date: '2023-07-22'
+lastmod: '2023-07-22'
+tags: ['nestjs', 'grpc', 'microservices', 'backend', 'performance', 'rpc']
 draft: false
 summary: 'Khi một server muốn "nói chuyện" với server khác sẽ cần phải encode data (JSON, XML), phía nhận cũng phải làm công việc ngược lại là decode data mới hiểu thằng kia nói gì với mình rôi lại phải encode lại tiếp. Việc này tiêu tốn khá nhiều tài nguyên xử lý (CPU) mà lẽ ra chỉ cần làm ở bước đầu và cuối (đầu nhận và trả về cuối cùng). Tối ưu cho việc "giao tiếp" giữa các server là lý do gRPC ra đời'
-layout: PostSimple
-bibliography: references-data.bib
-canonicalUrl: https://tailwind-css-starter-blog-vert-kappa.vercel.app//blog/new-features-in-v1/
+images:
+  [
+    'https://fastly.picsum.photos/id/74/4288/2848.jpg?hmac=q02MzzHG23nkhJYRXR-_RgKTr6fpfwRgcXgE0EKvNB8',
+  ]
+authors: ['default']
+layout: PostLayout
+canonicalUrl: https://gaoden.vercel.app/blog/ket-hop-nhieu-microservices-voi-grpc-trong-nestjs
 ---
 
 <TOCInline toc={props.toc} toHeading={(2, 3, 4)} />
-Khi một server muốn "nói chuyện" với server khác sẽ cần phải encode data (JSON, XML), phía nhận cũng phải làm công việc ngược lại là decode data mới hiểu thằng kia nói gì với mình rôi lại phải encode lại tiếp. Việc này tiêu tốn khá nhiều tài nguyên xử lý (CPU) mà lẽ ra chỉ cần làm ở bước đầu và cuối (đầu nhận và trả về cuối cùng). Tối ưu cho việc "giao tiếp" giữa các server là lý do gRPC ra đời.
+Khi một server muốn "nói chuyện" với server khác sẽ cần phải encode data (JSON, XML), phía nhận cũng
+phải làm công việc ngược lại là decode data mới hiểu thằng kia nói gì với mình rôi lại phải encode lại
+tiếp. Việc này tiêu tốn khá nhiều tài nguyên xử lý (CPU) mà lẽ ra chỉ cần làm ở bước đầu và cuối (đầu
+nhận và trả về cuối cùng). Tối ưu cho việc "giao tiếp" giữa các server là lý do gRPC ra đời.
 
 gRPC là khung gọi thủ tục từ xa hiệu suất cao mã nguồn mở đa nền tảng. gRPC ban đầu được tạo bởi Google, sử dụng một cơ sở hạ tầng RPC có mục đích chung duy nhất có tên là Stubby để kết nối số lượng lớn các dịch vụ siêu nhỏ chạy trong và trên các trung tâm dữ liệu của Google từ khoảng năm 2001
 
@@ -49,6 +57,7 @@ const app = await NestFactory.createMicroservice<MicroserviceOptions>(AppModule,
 ## Ví dụ
 
 Tạo 1 ứng dụng gRPC được gọi tới `HerosService`. Tạo file hero/hero.proto:
+
 - Tạo `HerosService` chứa method `FindOne`
 - Tạo các argument `HeroById` và trả về 1 message `Hero`
 
@@ -73,6 +82,7 @@ message Hero {
   string name = 2;
 }
 ```
+
 ### heroes.controller.ts
 
 - Trong mỗi method của controler cần sử dụng decorator `@GrpcMethod` chứa 2 tham số là gRPC service và method của gRPC service
