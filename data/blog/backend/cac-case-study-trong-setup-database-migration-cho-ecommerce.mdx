@@ -1,0 +1,850 @@
+---
+title: 'Migrations | 5. Các case study trong setup database migration cho E-Commerce'
+thumnail: 'https://fastly.picsum.photos/id/688/4608/3072.jpg?hmac=qIpK7qUXym0mfdFosdvte_Ia2COVGw9-WjBicJ3eSHg'
+date: '2025-10-23'
+lastmod: '2025-10-23'
+tags: ['database', 'migration', 'backend', 'ecommerce', 'case-study', 'alembic', 'sqlalchemy']
+draft: false
+summary: 'Case study chi tiết về việc thiết lập database migrations cho E-Commerce Platform, từ định nghĩa scope, chọn tools, setup Alembic đến thiết lập workflow hoàn chỉnh.'
+images:
+  [
+    'https://fastly.picsum.photos/id/688/4608/3072.jpg?hmac=qIpK7qUXym0mfdFosdvte_Ia2COVGw9-WjBicJ3eSHg',
+  ]
+authors: ['default']
+layout: PostLayout
+canonicalUrl: https://gaoden.vercel.app/blog/backend/cac-case-study-trong-setup-database-migration-cho-ecommerce
+---
+
+## Giới thiệu
+
+Việc thiết lập database migrations đúng cách từ đầu của dự án là vô cùng quan trọng. Trong case study này, chúng ta sẽ tìm hiểu cách thiết lập database migrations cho một **E-Commerce Platform** từ A-Z, bao gồm:
+
+- Định nghĩa scope dự án
+- Chọn migration tool phù hợp
+- Setup Alembic với SQLAlchemy
+- Tạo initial migration
+- Thiết lập migration workflow
+
+## Định nghĩa Scope của E-Commerce Platform
+
+### Core Functionalities
+
+E-Commerce Platform của chúng ta sẽ bao gồm các chức năng chính:
+
+- **Product Catalog**: Quản lý thông tin sản phẩm, mô tả, giá, hình ảnh, danh mục
+- **User Management**: Xử lý tài khoản người dùng, authentication, roles, profiles
+- **Shopping Cart**: Cho phép người dùng thêm sản phẩm vào giỏ hàng, chỉnh sửa số lượng
+- **Order Management**: Xử lý đơn hàng, tracking trạng thái, quản lý thông tin giao hàng
+- **Payment Processing**: Tích hợp với payment gateways để xử lý giao dịch
+- **Inventory Management**: Theo dõi stock levels và quản lý cập nhật inventory
+- **Reviews and Ratings**: Cho phép người dùng đánh giá và rating sản phẩm
+
+### Data Entities
+
+Dựa trên các chức năng chính, chúng ta xác định các entities chính:
+
+```sql
+-- Core entities cho E-Commerce Platform
+Products: product_id, name, description, price, category_id, image_url
+Categories: category_id, name
+Users: user_id, username, email, password_hash, role
+Orders: order_id, user_id, order_date, shipping_address, total_amount
+Order Items: order_item_id, order_id, product_id, quantity, price
+Payments: payment_id, order_id, payment_date, amount, payment_method
+Inventory: product_id, quantity_in_stock
+Reviews: review_id, product_id, user_id, rating, comment
+```
+
+## Chọn Migration Tool
+
+### Các lựa chọn phổ biến
+
+#### 1. **Alembic (Python)**
+
+- Tích hợp chặt chẽ với SQLAlchemy
+- Flexible và powerful
+- Pythonic way để define migrations
+
+#### 2. **Flyway (Java)**
+
+- Simple và robust
+- Hỗ trợ nhiều databases
+- Tích hợp tốt với Java projects
+
+#### 3. **Liquibase (Java)**
+
+- Declarative approach
+- Hỗ trợ XML, YAML, JSON
+- Enterprise features
+
+#### 4. **Knex.js (JavaScript)**
+
+- Query builder cho Node.js
+- Simple API
+- Hỗ trợ nhiều databases
+
+#### 5. **Entity Framework Core Migrations (.NET)**
+
+- Tích hợp với .NET ecosystem
+- Seamless với Entity Framework Core
+
+### Lựa chọn cho E-Commerce Platform
+
+Với backend được phát triển bằng **Python + SQLAlchemy**, chúng ta chọn **Alembic** vì:
+
+- Seamless integration với SQLAlchemy
+- Pythonic way để define migrations
+- Powerful schema definition capabilities
+- Excellent community support
+
+## Setup Alembic cho E-Commerce Platform
+
+### 1. **Install Alembic**
+
+```bash
+# Cài đặt Alembic
+pip install alembic
+
+# Hoặc với requirements.txt
+echo "alembic==1.12.1" >> requirements.txt
+pip install -r requirements.txt
+```
+
+### 2. **Initialize Alembic**
+
+```bash
+# Khởi tạo Alembic trong project
+alembic init alembic
+```
+
+Cấu trúc thư mục sau khi init:
+
+```
+ecommerce-platform/
+├── alembic/
+│   ├── versions/
+│   ├── env.py
+│   └── script.py.mako
+├── alembic.ini
+├── models.py
+└── requirements.txt
+```
+
+### 3. **Configure alembic.ini**
+
+```ini
+# alembic.ini
+[alembic]
+# path to migration scripts
+script_location = alembic
+
+# template used to generate migration files
+# file_template = %%(rev)s_%%(slug)s
+
+# sys.path path, will be prepended to sys.path if present.
+# defaults to the current working directory.
+prepend_sys_path = .
+
+# timezone to use when rendering the date within the migration file
+# as well as the filename.
+# If specified, requires the python-dateutil library that can be
+# installed by adding `alembic[tz]` to the pip requirements
+# string value is passed to dateutil.tz.gettz()
+# leave blank for localtime
+# timezone =
+
+# max length of characters to apply to the
+# "slug" field
+# truncate_slug_length = 40
+
+# set to 'true' to run the environment during
+# the 'revision' command, regardless of autogenerate
+# revision_environment = false
+
+# set to 'true' to allow .pyc and .pyo files without
+# a source .py file to be detected as revisions in the
+# versions/ directory
+# sourceless = false
+
+# version number format
+version_num_format = %04d
+
+# version path separator; As mentioned above, this is the character used to split
+# version_locations. The default within new alembic.ini files is "os", which uses
+# os.pathsep. If this key is omitted entirely, it falls back to the legacy
+# behavior of splitting on spaces and/or commas.
+# Valid values for version_path_separator are:
+#
+# version_path_separator = :
+# version_path_separator = ;
+# version_path_separator = space
+version_path_separator = os
+
+# the output encoding used when revision files
+# are written from script.py.mako
+# output_encoding = utf-8
+
+sqlalchemy.url = postgresql+psycopg2://user:password@localhost:5432/ecommerce_db
+
+[post_write_hooks]
+# post_write_hooks defines scripts or Python functions that are run
+# on newly generated revision scripts.  See the documentation for further
+# detail and examples
+
+# format using "black" - use the console_scripts runner, against the "black" entrypoint
+# hooks = black
+# black.type = console_scripts
+# black.entrypoint = black
+# black.options = -l 79 REVISION_SCRIPT_FILENAME
+
+# Logging configuration
+[loggers]
+keys = root,sqlalchemy,alembic
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARN
+handlers = console
+qualname =
+
+[logger_sqlalchemy]
+level = WARN
+handlers =
+qualname = sqlalchemy.engine
+
+[logger_alembic]
+level = INFO
+handlers =
+qualname = alembic
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(levelname)-5.5s [%(name)s] %(message)s
+datefmt = %H:%M:%S
+```
+
+### 4. **Modify env.py**
+
+```python
+# alembic/env.py
+from logging.config import fileConfig
+from sqlalchemy import create_engine
+from sqlalchemy import pool
+from alembic import context
+import os
+import sys
+
+# Add the project root to the Python path
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+# Import your SQLAlchemy metadata object
+from models import metadata
+
+# this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
+config = context.config
+
+# Interpret the config file for Python logging.
+# This line sets up loggers basically.
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+# add your model's MetaData object here
+# for 'autogenerate' support
+target_metadata = metadata
+
+# other values from the config, defined by the needs of env.py,
+# can be acquired:
+# my_important_option = config.get_main_option("my_important_option")
+# ... etc.
+
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode.
+
+    This configures the context with just a URL
+    and not an Engine, though an Engine is acceptable
+    here as well.  By skipping the Engine creation
+    we don't even need a DBAPI to be available.
+
+    Calls to context.execute() here emit the script
+    directly to the console.
+
+    """
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode.
+
+    In this scenario we need to create an Engine
+    and associate a connection with the context.
+
+    """
+    connectable = create_engine(config.get_main_option("sqlalchemy.url"))
+
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection, target_metadata=target_metadata
+        )
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+```
+
+## Tạo Initial Migration
+
+### 1. **Generate Migration Script**
+
+```bash
+# Tạo migration script mới
+alembic revision -m "Create initial tables"
+```
+
+### 2. **Define Table Schemas**
+
+```python
+# alembic/versions/0001_create_initial_tables.py
+"""Create initial tables
+
+Revision ID: 0001
+Revises:
+Create Date: 2024-01-30 10:00:00.000000
+
+"""
+from alembic import op
+import sqlalchemy as sa
+
+# revision identifiers, used by Alembic.
+revision = '0001'
+down_revision = None
+branch_labels = None
+depends_on = None
+
+def upgrade() -> None:
+    # Create categories table
+    op.create_table(
+        'categories',
+        sa.Column('category_id', sa.Integer, primary_key=True),
+        sa.Column('name', sa.String(255), nullable=False),
+        sa.Column('description', sa.Text),
+        sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, server_default=sa.func.now())
+    )
+
+    # Create products table
+    op.create_table(
+        'products',
+        sa.Column('product_id', sa.Integer, primary_key=True),
+        sa.Column('name', sa.String(255), nullable=False),
+        sa.Column('description', sa.Text),
+        sa.Column('price', sa.Numeric(10, 2), nullable=False),
+        sa.Column('category_id', sa.Integer, sa.ForeignKey('categories.category_id')),
+        sa.Column('image_url', sa.String(255)),
+        sa.Column('sku', sa.String(100), unique=True),
+        sa.Column('is_active', sa.Boolean, default=True),
+        sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, server_default=sa.func.now())
+    )
+
+    # Create users table
+    op.create_table(
+        'users',
+        sa.Column('user_id', sa.Integer, primary_key=True),
+        sa.Column('username', sa.String(50), unique=True, nullable=False),
+        sa.Column('email', sa.String(100), unique=True, nullable=False),
+        sa.Column('password_hash', sa.String(255), nullable=False),
+        sa.Column('first_name', sa.String(50)),
+        sa.Column('last_name', sa.String(50)),
+        sa.Column('phone', sa.String(20)),
+        sa.Column('is_active', sa.Boolean, default=True),
+        sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, server_default=sa.func.now())
+    )
+
+    # Create orders table
+    op.create_table(
+        'orders',
+        sa.Column('order_id', sa.Integer, primary_key=True),
+        sa.Column('user_id', sa.Integer, sa.ForeignKey('users.user_id')),
+        sa.Column('order_number', sa.String(50), unique=True, nullable=False),
+        sa.Column('order_date', sa.DateTime, server_default=sa.func.now()),
+        sa.Column('shipping_address', sa.Text),
+        sa.Column('billing_address', sa.Text),
+        sa.Column('total_amount', sa.Numeric(10, 2), nullable=False),
+        sa.Column('status', sa.String(20), default='pending'),
+        sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, server_default=sa.func.now())
+    )
+
+    # Create order_items table
+    op.create_table(
+        'order_items',
+        sa.Column('order_item_id', sa.Integer, primary_key=True),
+        sa.Column('order_id', sa.Integer, sa.ForeignKey('orders.order_id')),
+        sa.Column('product_id', sa.Integer, sa.ForeignKey('products.product_id')),
+        sa.Column('quantity', sa.Integer, nullable=False),
+        sa.Column('price', sa.Numeric(10, 2), nullable=False),
+        sa.Column('created_at', sa.DateTime, server_default=sa.func.now())
+    )
+
+    # Create payments table
+    op.create_table(
+        'payments',
+        sa.Column('payment_id', sa.Integer, primary_key=True),
+        sa.Column('order_id', sa.Integer, sa.ForeignKey('orders.order_id')),
+        sa.Column('payment_date', sa.DateTime, server_default=sa.func.now()),
+        sa.Column('amount', sa.Numeric(10, 2), nullable=False),
+        sa.Column('payment_method', sa.String(50)),
+        sa.Column('transaction_id', sa.String(100)),
+        sa.Column('status', sa.String(20), default='pending'),
+        sa.Column('created_at', sa.DateTime, server_default=sa.func.now())
+    )
+
+    # Create inventory table
+    op.create_table(
+        'inventory',
+        sa.Column('product_id', sa.Integer, sa.ForeignKey('products.product_id'), primary_key=True),
+        sa.Column('quantity_in_stock', sa.Integer, nullable=False, default=0),
+        sa.Column('reorder_level', sa.Integer, default=10),
+        sa.Column('updated_at', sa.DateTime, server_default=sa.func.now())
+    )
+
+    # Create reviews table
+    op.create_table(
+        'reviews',
+        sa.Column('review_id', sa.Integer, primary_key=True),
+        sa.Column('product_id', sa.Integer, sa.ForeignKey('products.product_id')),
+        sa.Column('user_id', sa.Integer, sa.ForeignKey('users.user_id')),
+        sa.Column('rating', sa.Integer, nullable=False),
+        sa.Column('comment', sa.Text),
+        sa.Column('created_at', sa.DateTime, server_default=sa.func.now()),
+        sa.Column('updated_at', sa.DateTime, server_default=sa.func.now())
+    )
+
+    # Create indexes
+    op.create_index('idx_products_category', 'products', ['category_id'])
+    op.create_index('idx_products_sku', 'products', ['sku'])
+    op.create_index('idx_orders_user', 'orders', ['user_id'])
+    op.create_index('idx_orders_date', 'orders', ['order_date'])
+    op.create_index('idx_order_items_order', 'order_items', ['order_id'])
+    op.create_index('idx_order_items_product', 'order_items', ['product_id'])
+    op.create_index('idx_payments_order', 'payments', ['order_id'])
+    op.create_index('idx_reviews_product', 'reviews', ['product_id'])
+    op.create_index('idx_reviews_user', 'reviews', ['user_id'])
+
+def downgrade() -> None:
+    # Drop tables in reverse order
+    op.drop_table('reviews')
+    op.drop_table('inventory')
+    op.drop_table('payments')
+    op.drop_table('order_items')
+    op.drop_table('orders')
+    op.drop_table('users')
+    op.drop_table('products')
+    op.drop_table('categories')
+```
+
+### 3. **Apply Migration**
+
+```bash
+# Apply migration to database
+alembic upgrade head
+
+# Check migration status
+alembic current
+
+# View migration history
+alembic history
+```
+
+## Thiết lập Migration Workflow
+
+### 1. **Branching Strategy**
+
+```bash
+# Feature branch cho mỗi database change
+git checkout -b feature/product-reviews
+git checkout -b feature/user-roles
+git checkout -b feature/inventory-tracking
+```
+
+### 2. **Code Review Process**
+
+```yaml
+# .github/workflows/migration-review.yml
+name: Migration Review
+on:
+  pull_request:
+    paths:
+      - 'alembic/versions/*.py'
+
+jobs:
+  migration-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Validate migration syntax
+        run: |
+          alembic check
+      - name: Test migration on test database
+        run: |
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
+```
+
+### 3. **Testing Strategy**
+
+```python
+# tests/test_migrations.py
+import pytest
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+class TestMigrations:
+    def setup_method(self):
+        # Setup test database
+        self.engine = create_engine('sqlite:///:memory:')
+        self.Session = sessionmaker(bind=self.engine)
+
+        # Setup Alembic config
+        self.alembic_cfg = Config('alembic.ini')
+        self.alembic_cfg.set_main_option('sqlalchemy.url', 'sqlite:///:memory:')
+
+    def test_migration_upgrade_downgrade(self):
+        """Test that migrations can be applied and reverted"""
+        # Apply all migrations
+        command.upgrade(self.alembic_cfg, 'head')
+
+        # Verify tables exist
+        inspector = inspect(self.engine)
+        tables = inspector.get_table_names()
+        assert 'products' in tables
+        assert 'users' in tables
+        assert 'orders' in tables
+
+        # Revert all migrations
+        command.downgrade(self.alembic_cfg, 'base')
+
+        # Verify tables are dropped
+        tables = inspector.get_table_names()
+        assert 'products' not in tables
+        assert 'users' not in tables
+        assert 'orders' not in tables
+
+    def test_data_integrity_after_migration(self):
+        """Test data integrity after migration"""
+        # Apply migrations
+        command.upgrade(self.alembic_cfg, 'head')
+
+        # Insert test data
+        session = self.Session()
+        # ... insert test data ...
+
+        # Verify data integrity
+        # ... assertions ...
+
+        session.close()
+```
+
+### 4. **Deployment Process**
+
+```bash
+#!/bin/bash
+# deploy.sh - Production deployment script
+
+set -e
+
+echo "Starting deployment process..."
+
+# Backup database
+echo "Creating database backup..."
+pg_dump $DATABASE_URL > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Run migrations
+echo "Applying database migrations..."
+alembic upgrade head
+
+# Verify migration success
+echo "Verifying migration status..."
+alembic current
+
+# Run application tests
+echo "Running application tests..."
+python -m pytest tests/
+
+echo "Deployment completed successfully!"
+```
+
+## Case Study: Thêm Product Reviews Feature
+
+### Scenario
+
+E-Commerce platform cần thêm tính năng product reviews:
+
+1. **Developer tạo branch mới**:
+
+```bash
+git checkout -b feature/product-reviews
+```
+
+2. **Tạo migration cho reviews table**:
+
+```bash
+alembic revision -m "Add product reviews feature"
+```
+
+3. **Define migration**:
+
+```python
+# alembic/versions/0002_add_product_reviews.py
+"""Add product reviews feature
+
+Revision ID: 0002
+Revises: 0001
+Create Date: 2024-01-30 11:00:00.000000
+
+"""
+from alembic import op
+import sqlalchemy as sa
+
+revision = '0002'
+down_revision = '0001'
+branch_labels = None
+depends_on = None
+
+def upgrade() -> None:
+    # Add rating column to existing reviews table
+    op.add_column('reviews', sa.Column('rating', sa.Integer, nullable=False))
+
+    # Add helpful_votes column
+    op.add_column('reviews', sa.Column('helpful_votes', sa.Integer, default=0))
+
+    # Create review_votes table
+    op.create_table(
+        'review_votes',
+        sa.Column('vote_id', sa.Integer, primary_key=True),
+        sa.Column('review_id', sa.Integer, sa.ForeignKey('reviews.review_id')),
+        sa.Column('user_id', sa.Integer, sa.ForeignKey('users.user_id')),
+        sa.Column('is_helpful', sa.Boolean, nullable=False),
+        sa.Column('created_at', sa.DateTime, server_default=sa.func.now())
+    )
+
+    # Create indexes
+    op.create_index('idx_review_votes_review', 'review_votes', ['review_id'])
+    op.create_index('idx_review_votes_user', 'review_votes', ['user_id'])
+
+def downgrade() -> None:
+    op.drop_table('review_votes')
+    op.drop_column('reviews', 'helpful_votes')
+    op.drop_column('reviews', 'rating')
+```
+
+4. **Code review và testing**:
+
+```bash
+# Test migration locally
+alembic upgrade head
+alembic downgrade -1
+alembic upgrade head
+
+# Run tests
+python -m pytest tests/test_reviews.py
+```
+
+5. **Deploy to production**:
+
+```bash
+# Deploy với migration
+./deploy.sh
+```
+
+## Exercises
+
+### 1. **Thêm discount column vào products table**
+
+```python
+# Migration: Add discount column
+def upgrade() -> None:
+    op.add_column('products',
+        sa.Column('discount', sa.Numeric(5, 2), default=0.0))
+
+def downgrade() -> None:
+    op.drop_column('products', 'discount')
+```
+
+### 2. **Tạo user roles table**
+
+```python
+# Migration: Create roles table
+def upgrade() -> None:
+    # Create roles table
+    op.create_table(
+        'roles',
+        sa.Column('role_id', sa.Integer, primary_key=True),
+        sa.Column('name', sa.String(50), unique=True, nullable=False),
+        sa.Column('description', sa.Text)
+    )
+
+    # Add role_id to users table
+    op.add_column('users',
+        sa.Column('role_id', sa.Integer, sa.ForeignKey('roles.role_id')))
+
+    # Create index
+    op.create_index('idx_users_role', 'users', ['role_id'])
+
+def downgrade() -> None:
+    op.drop_index('idx_users_role', 'users')
+    op.drop_column('users', 'role_id')
+    op.drop_table('roles')
+```
+
+### 3. **Rename image_url column**
+
+```python
+# Migration: Rename image_url column
+def upgrade() -> None:
+    op.alter_column('products', 'image_url', new_column_name='product_image_url')
+
+def downgrade() -> None:
+    op.alter_column('products', 'product_image_url', new_column_name='image_url')
+```
+
+### 4. **Create seed data**
+
+```python
+# Migration: Add initial categories
+def upgrade() -> None:
+    # Insert initial categories
+    categories_table = sa.table('categories',
+        sa.column('name', sa.String),
+        sa.column('description', sa.Text)
+    )
+
+    op.bulk_insert(categories_table, [
+        {'name': 'Electronics', 'description': 'Electronic devices and gadgets'},
+        {'name': 'Clothing', 'description': 'Fashion and apparel'},
+        {'name': 'Books', 'description': 'Books and literature'},
+        {'name': 'Home & Garden', 'description': 'Home improvement and gardening'},
+        {'name': 'Sports', 'description': 'Sports and fitness equipment'}
+    ])
+
+def downgrade() -> None:
+    op.execute("DELETE FROM categories WHERE name IN ('Electronics', 'Clothing', 'Books', 'Home & Garden', 'Sports')")
+```
+
+## Best Practices Summary
+
+### 1. **Migration Naming Convention**
+
+```
+YYYYMMDD_HHMMSS_descriptive_name.py
+20240130_100000_create_initial_tables.py
+20240130_110000_add_product_reviews.py
+```
+
+### 2. **Always Implement Both upgrade() và downgrade()**
+
+```python
+def upgrade() -> None:
+    # Forward migration
+    pass
+
+def downgrade() -> None:
+    # Backward migration (rollback)
+    pass
+```
+
+### 3. **Test Migrations Thoroughly**
+
+```bash
+# Test upgrade
+alembic upgrade head
+
+# Test downgrade
+alembic downgrade base
+
+# Test upgrade again
+alembic upgrade head
+```
+
+### 4. **Use Transactions**
+
+```python
+def upgrade() -> None:
+    with op.batch_alter_table('products') as batch_op:
+        batch_op.add_column(sa.Column('new_field', sa.String(100)))
+        batch_op.alter_column('name', type_=sa.String(300))
+```
+
+### 5. **Document Migration Changes**
+
+```python
+"""Add product reviews feature
+
+This migration adds support for product reviews including:
+- Rating system (1-5 stars)
+- Review comments
+- Helpful votes
+- User voting on reviews
+
+Revision ID: 0002
+Revises: 0001
+Create Date: 2024-01-30 11:00:00.000000
+
+"""
+```
+
+## Kết luận
+
+Thiết lập database migrations đúng cách từ đầu là foundation quan trọng cho bất kỳ dự án nào. Trong case study này, chúng ta đã:
+
+- **Định nghĩa scope** rõ ràng cho E-Commerce Platform
+- **Chọn Alembic** phù hợp với Python + SQLAlchemy stack
+- **Setup hoàn chỉnh** Alembic với configuration đúng
+- **Tạo initial migration** với full schema
+- **Thiết lập workflow** cho team collaboration
+- **Áp dụng best practices** cho production environment
+
+Việc follow đúng process này sẽ đảm bảo database schema được quản lý một cách an toàn, có thể scale và maintain trong tương lai.
+
+Bạn có kinh nghiệm gì về setup database migrations cho dự án lớn không? Hãy chia sẻ trong phần comment nhé!
+
+## Tài liệu tham khảo
+
+- [Alembic Documentation](https://alembic.sqlalchemy.org/)
+- [SQLAlchemy Documentation](https://docs.sqlalchemy.org/)
+- [Database Migration Best Practices](https://www.postgresql.org/docs/current/ddl-alter.html)
+- [E-Commerce Database Design](https://www.vertabelo.com/blog/technical-articles/database-design-for-e-commerce)
