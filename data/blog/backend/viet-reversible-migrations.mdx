@@ -1,0 +1,601 @@
+---
+title: 'Migrations | 8. Viết Reversible Migrations - Quản lý Database Schemas một cách An toàn'
+thumnail: 'https://fastly.picsum.photos/id/25/5000/3333.jpg?hmac=yCz9LeSs-i72Ru0YvvpsoECnCTxZjzGde805gWrAHkM'
+date: '2025-11-02T10:00:00Z'
+lastmod: '2025-11-02T10:00:00Z'
+tags: ['database', 'migration', 'reversible-migration', 'backend', 'devops', 'schema-management']
+draft: false
+summary: 'Hướng dẫn chi tiết về viết reversible migrations cho database, bao gồm nguyên tắc cơ bản, chiến lược, ví dụ thực tế, và best practices để đảm bảo an toàn dữ liệu.'
+images:
+  [
+    'https://fastly.picsum.photos/id/25/5000/3333.jpg?hmac=yCz9LeSs-i72Ru0YvvpsoECnCTxZjzGde805gWrAHkM',
+  ]
+authors: ['default']
+layout: PostLayout
+canonicalUrl: https://gaoden.vercel.app/blog/backend/viet-reversible-migrations
+---
+
+## Giới thiệu
+
+Database migrations là công cụ quan trọng để quản lý các thay đổi schema trong một cách kiểm soát và có phiên bản. Tuy nhiên, chỉ có khả năng áp dụng migrations là chưa đủ — bạn cũng cần **khả năng hoàn tác (rollback)** những thay đổi đó.
+
+**Reversible migrations** cho phép bạn:
+
+- ✅ **Undo các thay đổi** để sửa lỗi
+- ✅ **Rollback tính năng** khi phát hiện vấn đề
+- ✅ **Quay về trạng thái cũ** nếu cần thiết
+- ✅ **Duy trì tính toàn vẹn dữ liệu** trong toàn bộ quá trình
+
+Bài viết này sẽ tập trung vào các **chiến lược và kỹ thuật** để viết reversible migrations, đảm bảo dữ liệu an toàn và giảm thiểu downtime.
+
+---
+
+## Hiểu về Reversible Migrations
+
+### Cấu trúc Cơ bản
+
+Một reversible migration bao gồm **hai phần chính**:
+
+| Phần     | Mô tả                 | Mục đích                        |
+| -------- | --------------------- | ------------------------------- |
+| **up**   | Áp dụng các thay đổi  | Phát triển/nâng cấp schema      |
+| **down** | Hoàn tác các thay đổi | Rollback/quay lại trạng thái cũ |
+
+### 4 Nguyên tắc Cơ bản
+
+#### 1. **Atomicity (Tính Nguyên tử)**
+
+Mỗi migration phải đại diện cho **một thay đổi logic duy nhất** trong database.
+
+```sql
+-- ❌ Sai: Quá nhiều thay đổi trong một migration
+CREATE TABLE users (...);
+CREATE TABLE posts (...);
+CREATE TABLE comments (...);
+ALTER TABLE users ADD COLUMN phone VARCHAR(20);
+UPDATE users SET status = 'active';
+
+-- ✅ Đúng: Mỗi migration là một thay đổi
+-- Migration 001: CREATE TABLE users
+-- Migration 002: CREATE TABLE posts
+-- Migration 003: CREATE TABLE comments
+-- Migration 004: ALTER TABLE users ADD COLUMN phone
+-- Migration 005: UPDATE users SET status = 'active'
+```
+
+**Lợi ích:**
+
+- Dễ hiểu và suy luận về logic
+- Dễ phát hiện và sửa lỗi
+- Dễ rollback một phần nếu cần
+
+#### 2. **Idempotency (Tính Lặp lại)**
+
+Phép toán **up** và **down** phải có thể chạy **nhiều lần** mà không gây ra lỗi không mong muốn.
+
+```sql
+-- ❌ Không Idempotent: Lỗi nếu chạy lần 2
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(100)
+);
+
+-- ✅ Idempotent: Chạy lần 2 cũng OK
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(100)
+);
+
+-- ✅ Idempotent: Xóa có điều kiện
+DROP TABLE IF EXISTS users;
+
+-- ✅ Idempotent: Add column có điều kiện
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20);
+```
+
+#### 3. **Data Integrity (Tính Toàn vẹn Dữ liệu)**
+
+Phép toán **down** phải **bảo toàn dữ liệu** càng nhiều càng tốt.
+
+```sql
+-- ❌ Mất dữ liệu: Xóa cột mà không backup
+ALTER TABLE users DROP COLUMN phone;
+
+-- ✅ Bảo toàn dữ liệu: Backup trước khi xóa
+-- UP
+ALTER TABLE users ADD COLUMN phone_backup VARCHAR(20);
+UPDATE users SET phone_backup = phone;
+ALTER TABLE users DROP COLUMN phone;
+
+-- DOWN
+ALTER TABLE users ADD COLUMN phone VARCHAR(20);
+UPDATE users SET phone = phone_backup;
+ALTER TABLE users DROP COLUMN phone_backup;
+```
+
+#### 4. **Testability (Tính Khả test)**
+
+Reversible migrations phải được **kiểm thử kỹ lưỡng** cho cả up và down.
+
+```python
+# Kiểm thử migration
+def test_migration_up_down():
+    # Setup
+    db.execute("INSERT INTO users (name) VALUES ('John')")
+
+    # Chạy up
+    run_migration_up()
+    assert db.query("SELECT * FROM users").count() == 1
+
+    # Chạy down
+    run_migration_down()
+    assert db.query("SELECT * FROM users").count() == 1
+
+    # Xác minh dữ liệu nguyên vẹn
+    user = db.query("SELECT * FROM users").first()
+    assert user.name == 'John'
+```
+
+---
+
+## Các Phép toán Phổ biến và Cách Hoàn tác
+
+| Phép toán            | UP                     | DOWN                    | Lưu ý                                    |
+| -------------------- | ---------------------- | ----------------------- | ---------------------------------------- |
+| **Tạo Bảng**         | `CREATE TABLE`         | `DROP TABLE`            | Đảm bảo drop tất cả constraints, indexes |
+| **Thêm Cột**         | `ALTER ADD COLUMN`     | `ALTER DROP COLUMN`     | Xem xét dữ liệu trong cột trước khi xóa  |
+| **Đổi Tên Bảng**     | `RENAME TO new_name`   | `RENAME TO old_name`    | Cập nhật tất cả foreign keys             |
+| **Thêm Index**       | `CREATE INDEX`         | `DROP INDEX`            | Kiểm tra tên index để drop chính xác     |
+| **Thêm Foreign Key** | `ALTER ADD CONSTRAINT` | `ALTER DROP CONSTRAINT` | Biết rõ tên constraint                   |
+| **Data Migration**   | `UPDATE/INSERT`        | `UPDATE/INSERT`         | **Phức tạp nhất** — cần backup/logging   |
+
+---
+
+## Chiến lược Viết Reversible Migrations
+
+### 1️⃣ Explicit Up và Down Methods
+
+Hầu hết các migration tools cung cấp cơ chế để định nghĩa **riêng rẽ** up và down methods.
+
+#### Ví dụ (Alembic - Python)
+
+```python
+from alembic import op
+import sqlalchemy as sa
+
+def upgrade():
+    # Mã để áp dụng migration
+    op.create_table(
+        'products',
+        sa.Column('id', sa.Integer, primary_key=True),
+        sa.Column('name', sa.String(100), nullable=False),
+        sa.Column('price', sa.Numeric(10, 2), nullable=False),
+        sa.Column('created_at', sa.DateTime, server_default=sa.func.now())
+    )
+    op.add_column('orders', sa.Column('discount_code_id', sa.Integer))
+    op.create_foreign_key('fk_orders_discount', 'orders', 'products',
+                          ['discount_code_id'], ['id'])
+
+def downgrade():
+    # Mã để hoàn tác migration
+    op.drop_constraint('fk_orders_discount', 'orders')
+    op.drop_column('orders', 'discount_code_id')
+    op.drop_table('products')
+```
+
+#### Ví dụ (Sequelize - Node.js)
+
+```javascript
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    // UP: Tạo bảng discount_codes
+    await queryInterface.createTable('discount_codes', {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: Sequelize.INTEGER,
+      },
+      code: {
+        type: Sequelize.STRING,
+        allowNull: false,
+        unique: true,
+      },
+      discount_percentage: {
+        type: Sequelize.DECIMAL(5, 2),
+        allowNull: false,
+      },
+      expiration_date: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+      created_at: {
+        allowNull: false,
+        type: Sequelize.DATE,
+      },
+    })
+
+    // Thêm cột discount_code_id vào bảng orders
+    await queryInterface.addColumn('orders', 'discount_code_id', {
+      type: Sequelize.INTEGER,
+      references: {
+        model: 'discount_codes',
+        key: 'id',
+      },
+    })
+  },
+
+  down: async (queryInterface, Sequelize) => {
+    // DOWN: Hoàn tác
+    await queryInterface.removeColumn('orders', 'discount_code_id')
+    await queryInterface.dropTable('discount_codes')
+  },
+}
+```
+
+**Ưu điểm:**
+
+- ✅ Rõ ràng và minh bạch
+- ✅ Dễ theo dõi ý định
+- ✅ Giảm rủi ro lỗi
+
+### 2️⃣ Hoàn tác Data Transformations
+
+Data transformations khó hoàn tác hơn vì thường liên quan đến logic phức tạp.
+
+#### Chiến lược A: Backup và Restore
+
+```python
+def upgrade():
+    # Bước 1: Tạo cột backup để lưu dữ liệu gốc
+    op.add_column('products', sa.Column('original_price', sa.Numeric(10, 2)))
+
+    # Bước 2: Copy dữ liệu gốc vào backup column
+    op.execute("UPDATE products SET original_price = price")
+
+    # Bước 3: Thực hiện transformation
+    op.execute("UPDATE products SET price = price * 1.1")  # Tăng giá 10%
+
+def downgrade():
+    # Hoàn tác: Restore từ backup
+    op.execute("UPDATE products SET price = original_price")
+
+    # Xóa cột backup
+    op.drop_column('products', 'original_price')
+```
+
+#### Chiến lược B: Store Original Values
+
+```python
+def upgrade():
+    # Thêm cột để lưu giá trị gốc trước khi transform
+    op.add_column('orders', sa.Column('original_total', sa.Numeric(10, 2)))
+
+    # Backup giá trị gốc
+    op.execute("UPDATE orders SET original_total = total_amount")
+
+    # Áp dụng transformation
+    op.execute("""
+        UPDATE orders SET total_amount =
+        CASE
+            WHEN country = 'US' THEN total_amount * 1.08
+            WHEN country = 'EU' THEN total_amount * 1.23
+            ELSE total_amount
+        END
+    """)
+
+def downgrade():
+    # Hoàn tác từ original values
+    op.execute("UPDATE orders SET total_amount = original_total")
+    op.drop_column('orders', 'original_total')
+```
+
+#### Chiến lược C: Logging
+
+```python
+from datetime import datetime
+
+def upgrade():
+    # Tạo log table
+    op.create_table(
+        'migration_log_20240115',
+        sa.Column('id', sa.Integer, primary_key=True),
+        sa.Column('user_id', sa.Integer),
+        sa.Column('old_status', sa.String(50)),
+        sa.Column('new_status', sa.String(50)),
+        sa.Column('changed_at', sa.DateTime)
+    )
+
+    # Ghi log tất cả thay đổi trước khi transform
+    op.execute("""
+        INSERT INTO migration_log_20240115 (user_id, old_status, new_status, changed_at)
+        SELECT id, status, 'premium', NOW() FROM users WHERE status = 'basic'
+    """)
+
+    # Áp dụng transformation
+    op.execute("UPDATE users SET status = 'premium' WHERE status = 'basic'")
+
+def downgrade():
+    # Restore từ log
+    op.execute("""
+        UPDATE users
+        SET status = old_status
+        FROM migration_log_20240115
+        WHERE users.id = user_id
+    """)
+
+    # Xóa log table
+    op.drop_table('migration_log_20240115')
+```
+
+### 3️⃣ Xử lý Complex Schema Changes
+
+Những thay đổi schema phức tạp nên được **chia nhỏ** thành các migrations riêng rẽ.
+
+#### Ví dụ: Tách Bảng Address
+
+**Vấn đề:** Tách bảng `addresses` thành các bảng `countries`, `regions`, `cities`.
+
+**Giải pháp:** Chia thành 3 migrations:
+
+```python
+# Migration 1: Tạo bảng mới
+def upgrade():
+    op.create_table('countries', ...)
+    op.create_table('regions', ...)
+    op.create_table('cities', ...)
+
+def downgrade():
+    op.drop_table('cities')
+    op.drop_table('regions')
+    op.drop_table('countries')
+
+# Migration 2: Migrate dữ liệu
+def upgrade():
+    # Chèn các quốc gia duy nhất
+    op.execute("""
+        INSERT INTO countries (name)
+        SELECT DISTINCT country FROM addresses
+    """)
+
+    # Chèn các vùng/khu vực
+    op.execute("""
+        INSERT INTO regions (country_id, name)
+        SELECT c.id, a.region FROM addresses a
+        JOIN countries c ON a.country = c.name
+        GROUP BY c.id, a.region
+    """)
+
+    # Tương tự cho cities
+    # Thêm foreign keys vào addresses
+    op.add_column('addresses', sa.Column('country_id', sa.Integer))
+    op.add_column('addresses', sa.Column('region_id', sa.Integer))
+    op.add_column('addresses', sa.Column('city_id', sa.Integer))
+
+def downgrade():
+    op.drop_column('addresses', 'city_id')
+    op.drop_column('addresses', 'region_id')
+    op.drop_column('addresses', 'country_id')
+
+# Migration 3: Dọn dẹp
+def upgrade():
+    op.drop_column('addresses', 'country')
+    op.drop_column('addresses', 'region')
+    op.drop_column('addresses', 'city')
+
+def downgrade():
+    op.add_column('addresses', sa.Column('country', sa.String(100)))
+    op.add_column('addresses', sa.Column('region', sa.String(100)))
+    op.add_column('addresses', sa.Column('city', sa.String(100)))
+```
+
+### 4️⃣ Sử dụng Transactions
+
+Bọc up/down operations trong **transaction** để đảm bảo consistency.
+
+```python
+def upgrade():
+    op.execute("BEGIN")
+    try:
+        op.create_table('products', ...)
+        op.add_column('orders', 'discount_code_id', ...)
+        op.execute("COMMIT")
+    except Exception as e:
+        op.execute("ROLLBACK")
+        raise e
+
+def downgrade():
+    op.execute("BEGIN")
+    try:
+        op.drop_column('orders', 'discount_code_id')
+        op.drop_table('products')
+        op.execute("COMMIT")
+    except Exception as e:
+        op.execute("ROLLBACK")
+        raise e
+```
+
+**Lợi ích:**
+
+- ✅ Tất cả hoặc không (All or Nothing)
+- ✅ Bảo vệ tính nhất quán dữ liệu
+- ✅ Tự động rollback nếu có lỗi
+
+---
+
+## Ví dụ Thực tế: Chuyển Đổi Giá
+
+**Tình huống:** Chuyển đổi giá sản phẩm từ USD sang EUR.
+
+```python
+def upgrade():
+    # Bước 1: Thêm cột backup cho giá gốc (USD)
+    op.add_column('products', sa.Column('usd_price', sa.Numeric(10, 2)))
+
+    # Bước 2: Copy giá hiện tại vào backup
+    op.execute("UPDATE products SET usd_price = price")
+
+    # Bước 3: Chuyển đổi sang EUR (tỉ giá 1 USD = 0.85 EUR)
+    op.execute("UPDATE products SET price = ROUND(price * 0.85, 2)")
+
+    # Bước 4: Ghi log lại migration
+    op.execute("""
+        INSERT INTO migration_log (migration_name, applied_at)
+        VALUES ('Convert USD to EUR', NOW())
+    """)
+
+def downgrade():
+    # Bước 1: Chuyển đổi ngược lại (EUR -> USD)
+    op.execute("UPDATE products SET price = ROUND(usd_price / 0.85, 2)")
+
+    # Bước 2: Xóa cột backup
+    op.drop_column('products', 'usd_price')
+
+    # Bước 3: Ghi log rollback
+    op.execute("""
+        UPDATE migration_log
+        SET rolled_back_at = NOW()
+        WHERE migration_name = 'Convert USD to EUR'
+    """)
+```
+
+---
+
+## Best Practices
+
+### ✅ DO's (Nên làm)
+
+- ✅ **Viết up và down cùng lúc** — không để sau
+- ✅ **Kiểm thử cả hai chiều** — kiểm thử up rồi down
+- ✅ **Sao lưu dữ liệu quan trọng** trước khi transform
+- ✅ **Sử dụng transactions** để đảm bảo consistency
+- ✅ **Chia nhỏ migrations** — một thay đổi logic trên một file
+- ✅ **Viết comments rõ ràng** giải thích ý định
+
+### ❌ DON'Ts (Không nên làm)
+
+- ❌ **Quên viết down method**
+- ❌ **Để down method rỗng hoặc chỉ là comment**
+- ❌ **Perform mất dữ liệu không backup**
+- ❌ **Kết hợp nhiều thay đổi logic trong một migration**
+- ❌ **Không kiểm thử rollback**
+- ❌ **Hardcode values** — dùng dynamic queries
+
+---
+
+## Bài tập Thực hành
+
+### 1. Reversible Column Rename
+
+**Yêu cầu:** Đổi tên cột từ `description` thành `product_description` trong bảng `products`.
+
+```python
+def upgrade():
+    op.alter_column('products', 'description', new_column_name='product_description')
+
+def downgrade():
+    op.alter_column('products', 'product_description', new_column_name='description')
+```
+
+### 2. Reversible Data Transformation with Backup
+
+**Yêu cầu:** Hash tất cả email trong bảng `users` vì lý do privacy.
+
+```python
+import hashlib
+
+def hash_email(email):
+    return hashlib.sha256(email.encode()).hexdigest()
+
+def upgrade():
+    # Sao lưu emails gốc
+    op.add_column('users', sa.Column('email_backup', sa.String(255)))
+    op.execute("UPDATE users SET email_backup = email")
+
+    # Hash emails
+    op.execute("""
+        UPDATE users
+        SET email = SUBSTRING(
+            MD5(email), 1, 32
+        ) || '@hashed.local'
+    """)
+
+def downgrade():
+    # Khôi phục emails gốc
+    op.execute("UPDATE users SET email = email_backup")
+    op.drop_column('users', 'email_backup')
+```
+
+### 3. Reversible Table Split
+
+**Yêu cầu:** Tách `full_name` thành `first_name` và `last_name`.
+
+```python
+def upgrade():
+    # Thêm cột mới
+    op.add_column('users', sa.Column('first_name', sa.String(50)))
+    op.add_column('users', sa.Column('last_name', sa.String(50)))
+
+    # Tách dữ liệu
+    op.execute("""
+        UPDATE users
+        SET first_name = SUBSTRING_INDEX(full_name, ' ', 1),
+            last_name = SUBSTRING_INDEX(full_name, ' ', -1)
+    """)
+
+    # Xử lý null values
+    op.execute("UPDATE users SET first_name = full_name WHERE first_name IS NULL")
+    op.execute("UPDATE users SET last_name = '' WHERE last_name IS NULL")
+
+    # Xóa cột cũ
+    op.drop_column('users', 'full_name')
+
+def downgrade():
+    # Thêm lại cột cũ
+    op.add_column('users', sa.Column('full_name', sa.String(100)))
+
+    # Tái tạo full_name
+    op.execute("""
+        UPDATE users
+        SET full_name = CONCAT(first_name, ' ', last_name)
+    """)
+
+    # Xóa cột mới
+    op.drop_column('users', 'first_name')
+    op.drop_column('users', 'last_name')
+```
+
+---
+
+## Kết luận
+
+Reversible migrations là **nền tảng** của một hệ thống database management tốt:
+
+| Lợi ích         | Tác dụng                                     |
+| --------------- | -------------------------------------------- |
+| **Flexibility** | Có thể thay đổi hoặc rollback bất cứ lúc nào |
+| **Safety**      | Bảo vệ dữ liệu qua quá trình migration       |
+| **Confidence**  | Team có thể deploy với tự tin                |
+| **Debugging**   | Dễ dàng tìm ra migration nào gây lỗi         |
+| **Testing**     | Có thể kiểm thử rollback trước production    |
+
+**Nhớ rằng:**
+
+- ✅ Viết up và down **cùng lúc**
+- ✅ **Kiểm thử cả hai chiều** trước deploy
+- ✅ **Sao lưu dữ liệu quan trọng**
+- ✅ **Chia nhỏ migrations** — một thay đổi logic trên một file
+- ✅ **Sử dụng transactions** để đảm bảo consistency
+
+Với các nguyên tắc và chiến lược này, bạn có thể viết reversible migrations đáng tin cậy, an toàn, và dễ bảo trì cho bất kỳ dự án nào!
+
+---
+
+## Tài liệu Tham khảo
+
+- [Alembic Database Migrations](https://alembic.sqlalchemy.org/)
+- [Sequelize Migrations](https://sequelize.org/docs/v6/other-topics/migrations/)
+- [Django Migrations](https://docs.djangoproject.com/en/stable/topics/migrations/)
+- [Flyway Reversible Migrations](https://flywaydb.org/documentation/command/undo)
+- [Database Migration Best Practices](https://www.liquibase.org/get-started/best-practices)
+- [Zero-Downtime Database Migrations](https://stripe.com/blog/online-migrations)
